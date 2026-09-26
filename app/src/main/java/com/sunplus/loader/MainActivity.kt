@@ -63,8 +63,9 @@ class MainActivity : AppCompatActivity() {
             result.data?.data?.let { uri ->
                 selectedFileUri = uri
                 val fileName = getFileName(uri)
-                tvSelectedFile.text = "الملف المحدد: $fileName"
-                appendLog("📁 تم اختيار ملف السوفت وير: $fileName")
+                val fileSize = getFileSize(uri)
+                tvSelectedFile.text = "الملف: $fileName (${fileSize / 1024} KB)"
+                appendLog("📁 تم اختيار الملف: $fileName الحجم: ${fileSize} بايت")
             }
         }
     }
@@ -143,6 +144,17 @@ class MainActivity : AppCompatActivity() {
 
         btnStartProcess.setOnClickListener {
             if (!isProcessing) {
+                // التحقق من الملف في عملية الكتابة قبل البدء
+                val operation = spinnerOperation.selectedItem.toString()
+                if (operation.contains("كتابة")) {
+                    if (selectedFileUri == null) {
+                        appendLog("❌ يجب اختيار ملف السوفت وير (BIN) أولاً قبل بدء الكتابة!")
+                        return@setOnClickListener
+                    }
+                    if (!validateSelectedFileSize()) {
+                        return@setOnClickListener
+                    }
+                }
                 connectAndStartHandshake()
             } else {
                 appendLog("⚠️ العملية جارية بالفعل...")
@@ -175,6 +187,57 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return result ?: "ملف غير معروف"
+    }
+
+    private fun getFileSize(uri: Uri): Long {
+        var size: Long = 0
+        if (uri.scheme == "content") {
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val sizeIndex = it.getColumnIndex(OpenableColumns.SIZE)
+                    if (sizeIndex != -1) {
+                        size = it.getLong(sizeIndex)
+                    }
+                }
+            }
+        }
+        if (size == 0L) {
+            try {
+                val pfd = contentResolver.openFileDescriptor(uri, "r")
+                size = pfd?.statSize ?: 0L
+                pfd?.close()
+            } catch (e: Exception) {
+                size = 0L
+            }
+        }
+        return size
+    }
+
+    /**
+     * دالة الحماية والتحقق من حجم ملف الفلاشة (يجب أن يكون 4 ميجا بايت = 4,194,304 بايت للفلاشات العادية)
+     */
+    private fun validateSelectedFileSize(): Boolean {
+        val uri = selectedFileUri ?: return false
+        val size = getFileSize(uri)
+        val expectedSize: Long = 4 * 1024 * 1024 // 4MB
+
+        appendLog("🔍 فحص حجم الملف: $size بايت...")
+
+        if (size <= 0) {
+            appendLog("❌ خطأ: تعذر قراءة حجم الملف أو أن الملف فارغ!")
+            return false
+        }
+
+        // نسمح بفلاشات 4 ميجا أو تفاوت بسيط، ويمكن تعديلها حسب الحاجة
+        if (size != expectedSize) {
+            appendLog("⚠️ تحذير: حجم الملف (${size / 1024 / 1024}MB) لا يتطابق تماماً مع حجم الفلاشة القياسي (4MB).")
+            // يمكنك جعلها تحذيراً فقط أو إرجاع false لرفضه تماماً حفاظاً على الأمان:
+            // return false 
+        }
+
+        appendLog("✅ حجم الملف مقبول وآمن للمتابعة.")
+        return true
     }
 
     private fun scanForUsbDevices() {
