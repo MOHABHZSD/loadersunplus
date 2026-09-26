@@ -3,8 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="20dp"
+    android:padding="16dp"
     android:gravity="center_horizontal">
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -12,28 +13,60 @@
         android:textSize="22sp"
         android:textStyle="bold"
         android:layout_marginBottom="20dp" />
+
     <Spinner
-        android:id="@+id/spinnerCpu"
+        android:id="@+id/spinnerChipset"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="16dp" />
+
+    <!-- زر اختيار ملف الفلاشة -->
     <Button
-        android:id="@+id/btnStart"
+        android:id="@+id/btnSelectFile"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start Flashing"
-        android:layout_marginBottom="20dp" />
-    <ProgressBar
-        android:id="@+id/progressBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:max="100"
-        android:layout_marginBottom="15dp" />
+        android:text="اختر ملف الفلاشة (.bin)"
+        android:backgroundTint="#2196F3"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="8dp" />
+
+    <!-- نص لعرض اسم الملف المختار -->
     <TextView
-        android:id="@+id/txtStatus"
+        android:id="@+id/tvSelectedFile"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Waiting for OTG connection..."
-        android:gravity="center" />
+        android:text="لم يتم اختيار ملف فلاشة بعد"
+        android:gravity="center"
+        android:textSize="14sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="16dp" />
+
+    <!-- زر بدء الشحن -->
+    <Button
+        android:id="@+id/btnStartFlashing"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="START FLASHING"
+        android:layout_marginBottom="16dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#CCCCCC"
+        android:layout_marginBottom="16dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/tvStatusLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Waiting for OTG connection..."
+            android:textSize="14sp"
+            android:fontFamily="monospace" />
+    </ScrollView>
+
 </LinearLayout>
