@@ -11,6 +11,8 @@ import android.hardware.usb.UsbManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.OpenableColumns
 import android.view.WindowManager
 import android.widget.ArrayAdapter
@@ -24,6 +26,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
+import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
 
@@ -34,6 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     private var selectedFileUri: Uri? = null
     private var dumpFileUri: Uri? = null
+    private var isProcessing = false
 
     private lateinit var spinnerUsb: Spinner
     private lateinit var spinnerBaudRate: Spinner
@@ -79,10 +83,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 1. تفعيل الوضع الداكن إجبارياً
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        
-        // 2. منع الشاشة من الانطفاء ومنع النظام من تقييد التطبيق أثناء التفليش
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_main)
@@ -141,7 +142,11 @@ class MainActivity : AppCompatActivity() {
         scanForUsbDevices()
 
         btnStartProcess.setOnClickListener {
-            connectToDevice()
+            if (!isProcessing) {
+                connectAndStartHandshake()
+            } else {
+                appendLog("⚠️ العملية جارية بالفعل...")
+            }
         }
 
         btnStopProcess.setOnClickListener {
@@ -193,7 +198,7 @@ class MainActivity : AppCompatActivity() {
         appendLog("✅ تم اكتشاف وصلة جاهزة للاتصال.")
     }
 
-    private fun connectToDevice() {
+    private fun connectAndStartHandshake() {
         if (availableDevices.isEmpty()) {
             appendLog("❌ يرجى توصيل وصلة التفليش أولاً.")
             return
@@ -202,7 +207,7 @@ class MainActivity : AppCompatActivity() {
         val device = availableDevices[spinnerUsb.selectedItemPosition]
         
         if (usbManager.hasPermission(device)) {
-            openSerialPort(device)
+            openAndHandshake(device)
         } else {
             appendLog("⚠️ جاري طلب صلاحية الاتصال...")
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -215,7 +220,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun openSerialPort(device: UsbDevice) {
+    private fun openAndHandshake(device: UsbDevice) {
         val driver = UsbSerialProber.getDefaultProber().probeDevice(device)
         if (driver == null) {
             appendLog("❌ لا يوجد تعريف متوافق مع هذه الوصلة.")
@@ -231,14 +236,14 @@ class MainActivity : AppCompatActivity() {
         usbSerialPort = driver.ports[0]
         try {
             usbSerialPort?.open(connection)
-            
             val baudRate = spinnerBaudRate.selectedItem.toString().toInt()
             usbSerialPort?.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
             
-            appendLog("🚀 تم فتح المنفذ بنجاح بسرعة $baudRate")
             tvStatus.text = "الحالة: متصل"
+            appendLog("🚀 تم فتح المنفذ بنجاح بسرعة $baudRate")
             
-            appendLog("⏳ بانتظار استجابة معالج صن بلص (يرجى تشغيل الرسيفر الآن)...")
+            // بدء دالة المصافحة في خلفية النظام
+            startSunplusHandshake()
             
         } catch (e: Exception) {
             appendLog("❌ خطأ أثناء فتح المنفذ: ${e.message}")
@@ -246,7 +251,72 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * دالة المصافحة والاتصال بمعالج صن بلص (Sunplus Handshake)
+     */
+    private fun startSunplusHandshake() {
+        isProcessing = true
+        progressBar.progress = 10
+        
+        appendLog("⏳ يرجى إيقاف وتشغيل كهرباء الرسيفر الآن (Power Cycle)...")
+
+        Thread {
+            try {
+                val port = usbSerialPort
+                if (port == null) {
+                    appendLog("❌ المنفذ غير متصل.")
+                    isProcessing = false
+                    return@Thread
+                }
+
+                // محاولة إرسال نبضات المزامنة أو الاستماع لاستجابة الإقلاع من المعالج
+                val buffer = ByteArray(64)
+                val startTime = System.currentTimeMillis()
+                var connected = false
+
+                // الاستماع لمدة 10 ثوانٍ بانتظار استجابة الرسيفر عند إعادة الإقلاع
+                while (System.currentTimeMillis() - startTime < 10000) {
+                    if (!isProcessing) break
+
+                    try {
+                        // قراءة البيانات القادمة من الرسيفر (إن وجدت)
+                        val len = port.read(buffer, 200)
+                        if (len > 0) {
+                            connected = true
+                            appendLog("✅ تم استلام استجابة من المعالج (${len} bytes)")
+                            break
+                        }
+                    } catch (e: IOException) {
+                        // تجاهل مهلة القراءة المؤقتة واستمرار المحاولة
+                    }
+                }
+
+                if (connected) {
+                    Handler(Looper.getMainLooper()).post {
+                        tvStatus.text = "الحالة: تمت المصافحة بنجاح"
+                        progressBar.progress = 50
+                        appendLog("🎉 نجاح الاتصال بمعالج صن بلص! جاهز لتنفيذ العملية.")
+                    }
+                } else {
+                    Handler(Looper.getMainLooper()).post {
+                        tvStatus.text = "الحالة: انتهت المهلة"
+                        progressBar.progress = 0
+                        appendLog("❌ لم يتم استجابة المعالج. تأكد من توصيل خطوط TX و RX بشكل صحيح وإعادة تشغيل الرسيفر.")
+                    }
+                }
+
+            } catch (e: Exception) {
+                Handler(Looper.getMainLooper()).post {
+                    appendLog("❌ خطأ أثناء المصافحة: ${e.message}")
+                }
+            } finally {
+                isProcessing = false
+            }
+        }.start()
+    }
+
     private fun disconnectDevice() {
+        isProcessing = false
         try {
             usbSerialPort?.close()
             usbSerialPort = null
@@ -259,12 +329,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val usbReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (ACTION_USB_PERMISSION == intent.action) {
+        if (ACTION_USB_PERMISSION == intent.action) {
+            override fun onReceive(context: Context, intent: Intent) {
                 synchronized(this) {
                     val device: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        device?.let { openSerialPort(it) }
+                        device?.let { openAndHandshake(it) }
                     } else {
                         appendLog("❌ تم رفض الصلاحية من قبل المستخدم.")
                     }
@@ -275,7 +345,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(usbReceiver)
+        try {
+            unregisterReceiver(usbReceiver)
+        } catch (e: Exception) {}
         disconnectDevice()
     }
 
