@@ -1,4 +1,4 @@
-name: Generate Gradle Wrapper and Build
+name: Build Android APK
 on:
   push:
     branches: [ "main" ]
@@ -12,16 +12,14 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-    - name: Generate Gradle Wrapper
+    - name: Download Gradle 8.5
       run: |
-        gradle wrapper
-        git config --global user.name "GitHub Actions Bot"
-        git config --global user.email "actions@github.com"
-        git add gradlew gradlew.bat gradle/
-        git commit -m "Auto-add Gradle wrapper files" || echo "No changes to commit"
-        git push
-    - name: Build with Gradle Wrapper
-      run: ./gradlew assembleDebug
+        wget https://services.gradle.org/distributions/gradle-8.5-bin.zip
+        unzip -q gradle-8.5-bin.zip
+        sudo mv gradle-8.5 /opt/gradle
+        echo "/opt/gradle/bin" >> $GITHUB_PATH
+    - name: Build APK
+      run: gradle assembleDebug --no-daemon
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
