@@ -1,21 +1,26 @@
 package com.sunplus.loader
 
 import android.content.Context
+import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
-import android.widget.*
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.ProgressBar
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.InputStream
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,19 +33,21 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var btnSelectFile: Button
     private lateinit var btnStartFlashing: Button
-    private lateinit var tvSelectedFile: TextView
-    private lateinit var tvStatusLog: TextView
+    private lateinit var txtFileName: TextView
+    private lateinit var txtStatus: TextView
+    private lateinit var progressBar: ProgressBar
 
     private var selectedFileUri: Uri? = null
-    private var port: UsbSerialPort? = null
-    private var isFlashing = false
+    private var usbSerialPort: UsbSerialPort? = null
 
-    private val openFileLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) {
-            selectedFileUri = uri
-            val fileName = getFileName(uri)
-            tvSelectedFile.text = "الملف المحدد: $fileName"
-            logMessage("تم اختيار الملف: $fileName")
+    private val filePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedFileUri = it
+            val fileName = getFileName(it)
+            txtFileName.text = "الملف المحدد: $fileName"
+            logStatus("تم اختيار الملف: $fileName")
         }
     }
 
@@ -50,17 +57,14 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
         setupSpinners()
-        scanUsbDevices()
+        refreshUsbDevices()
 
-        btnSelectFile.setOnClickListener { openFileLauncher.launch("*/*") }
+        btnSelectFile.setOnClickListener {
+            filePickerLauncher.launch("*/*")
+        }
+
         btnStartFlashing.setOnClickListener {
-            if (!isFlashing) {
-                if (selectedFileUri == null) {
-                    logError("خطأ: يجب اختيار ملف الفلاشة (.bin) أولاً!")
-                } else {
-                    startFlashingProcess()
-                }
-            }
+            startProcess()
         }
     }
 
@@ -71,151 +75,159 @@ class MainActivity : AppCompatActivity() {
         spinnerOperateType = findViewById(R.id.spinnerOperateType)
         spinnerStorage = findViewById(R.id.spinnerStorage)
         spinnerSection = findViewById(R.id.spinnerSection)
+
         btnSelectFile = findViewById(R.id.btnSelectFile)
         btnStartFlashing = findViewById(R.id.btnStartFlashing)
-        tvSelectedFile = findViewById(R.id.tvSelectedFile)
-        tvStatusLog = findViewById(R.id.tvStatusLog)
+        txtFileName = findViewById(R.id.txtFileName)
+        txtStatus = findViewById(R.id.txtStatus)
+        progressBar = findViewById(R.id.progressBar)
     }
 
     private fun setupSpinners() {
-        setSpinnerAdapter(spinnerBaudRate, arrayOf("115200", "9600", "19200", "38400", "57600"))
-        setSpinnerAdapter(spinnerDdrType, arrayOf("DDR2", "DDR3"))
-        setSpinnerAdapter(spinnerOperateType, arrayOf("Rom Upgrade", "Dump Read"))
-        setSpinnerAdapter(spinnerStorage, arrayOf("SPI ALL", "SPI NOR", "NAND"))
-        setSpinnerAdapter(spinnerSection, arrayOf("All", "Code", "Data"))
+        val baudRates = arrayOf("115200", "57600", "38400", "19200", "9600")
+        val ddrTypes = arrayOf("DDR2", "DDR3", "Auto")
+        val operateTypes = arrayOf("تحديث (Flash)", "قراءة (Dump)", "مسح (Erase)")
+        val storageTypes = arrayOf("SPI Flash", "NAND Flash", "eMMC")
+        val sectionTypes = arrayOf("الكل (Full Flash)", "Bootloader", "Main Code", "User Data")
+
+        setSpinnerAdapter(spinnerBaudRate, baudRates)
+        setSpinnerAdapter(spinnerDdrType, ddrTypes)
+        setSpinnerAdapter(spinnerOperateType, operateTypes)
+        setSpinnerAdapter(spinnerStorage, storageTypes)
+        setSpinnerAdapter(spinnerSection, sectionTypes)
     }
 
-    private fun setSpinnerAdapter(spinner: Spinner, options: Array<String>) {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, options)
+    private fun setSpinnerAdapter(spinner: Spinner, items: Array<String>) {
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, items)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinner.adapter = adapter
     }
 
-    private fun scanUsbDevices() {
-        val manager = getSystemService(Context.USB_SERVICE) as UsbManager
-        val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager)
+    private fun refreshUsbDevices() {
+        val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
+
+        val deviceList = mutableListOf<String>()
+        if (availableDrivers.isEmpty()) {
+            deviceList.add("لا يوجد جهاز USB Serial متصل")
+        } else {
+            for (driver in availableDrivers) {
+                val device: UsbDevice = driver.device
+                deviceList.add("${device.productName ?: "USB Serial"} (${device.deviceId})")
+            }
+        }
+
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, deviceList)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerComPort.adapter = adapter
+    }
+
+    private fun startProcess() {
+        val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
 
         if (availableDrivers.isEmpty()) {
-            setSpinnerAdapter(spinnerComPort, arrayOf("لا يوجد كابل OTG / Serial متصل"))
-            logError("لم يتم العثور على محول USB to Serial. قم بتوصيل الوصلة.")
+            Toast.makeText(this, "يرجى توصيل وصلة RS232 USB أولاً", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val deviceNames = availableDrivers.map { "Device: ${it.device.deviceName} (${it.device.manufacturerName ?: "Serial"})" }
-        setSpinnerAdapter(spinnerComPort, deviceNames.toTypedArray())
-        logMessage("تم التعرف على كابل USB-Serial بنجاح.")
+        if (selectedFileUri == null && spinnerOperateType.selectedItemPosition == 0) {
+            Toast.makeText(this, "يرجى اختيار ملف السوفت وير أولاً", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val driver: UsbSerialDriver = availableDrivers[0]
+        val connection = usbManager.openDevice(driver.device)
+        if (connection == null) {
+            Toast.makeText(this, "تعذر الحصول على إذن الوصول للـ USB", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val port = driver.ports[0]
+        try {
+            port.open(connection)
+            val baudRate = spinnerBaudRate.selectedItem.toString().toIntOrNull() ?: 115200
+            port.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
+            usbSerialPort = port
+            logStatus("تم فتح المنفذ بنجاح بكتلة $baudRate")
+
+            performTransfer(port)
+
+        } catch (e: Exception) {
+            logStatus("خطأ بالاتصال: ${e.message}")
+            try { port.close() } catch (_: Exception) {}
+        }
     }
 
-    private fun startFlashingProcess() {
-        isFlashing = true
-        btnStartFlashing.isEnabled = false
-
-        // تشغيل عملية الشحن في الخلفية باستخدام Coroutines
+    private fun performTransfer(port: UsbSerialPort) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                logMessage("--- بدء عملية التوصيل والتفليش ---")
-
-                // 1. قراءة الملف وتحويله إلى Byte Array
-                val inputStream: InputStream? = contentResolver.openInputStream(selectedFileUri!!)
-                val firmwareBytes = inputStream?.readBytes()
-                inputStream?.close()
-
-                if (firmwareBytes == null || firmwareBytes.isEmpty()) {
-                    logError("خطأ في قراءة ملف الفلاشة أو الملف فارغ.")
-                    resetUiState()
-                    return@launch
+                withContext(Dispatchers.Main) {
+                    progressBar.progress = 0
+                    logStatus("جاري نقل البيانات... قم بتوصيل الرسيفر بالكهرباء الآن")
                 }
 
-                logMessage("حجم الملف المجهز: ${firmwareBytes.size} بايت.")
+                val uri = selectedFileUri
+                if (uri != null) {
+                    contentResolver.openInputStream(uri)?.use { inputStream ->
+                        val buffer = ByteArray(1024)
+                        var bytesRead: Int
+                        var totalRead = 0
+                        val fileSize = inputStream.available()
 
-                // 2. إعدادات السيريال والـ BaudRate
-                val selectedBaud = spinnerBaudRate.selectedItem.toString().toInt()
-                val selectedDdr = spinnerDdrType.selectedItem.toString()
-                val selectedStorage = spinnerStorage.selectedItem.toString()
+                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                            port.write(buffer.copyOf(bytesRead), 2000)
+                            totalRead += bytesRead
 
-                logMessage("الإعدادات: BaudRate=$selectedBaud | DDR=$selectedDdr | Storage=$selectedStorage")
-
-                // 3. كود الـ Handshake لاستقبال إشارة الإقلاع من المعالج
-                logMessage("في انتظار إشارة الإقلاع من معالج Sunplus (قم بتوصيل أو إعادة تشغيل كهرباء الرسيفر)...")
-                
-                var handshakingSuccess = false
-                val timeout = 15000 // 15 ثانية انتظار
-                val startTime = System.currentTimeMillis()
-
-                while (System.currentTimeMillis() - startTime < timeout) {
-                    // محاكاة التقاط إشارة الـ Handshake من المعالج ('U' / 0x55)
-                    delay(500) 
-                    handshakingSuccess = true
-                    break
-                }
-
-                if (!handshakingSuccess) {
-                    logError("خطأ: انتهت مهلة الانتظار (Timeout) ولم يستجب معالج الرسيفر.")
-                    resetUiState()
-                    return@launch
-                }
-
-                logMessage("تمت المصافحة (Handshake OK) بنجاح مع معالج Sunplus!")
-
-                // 4. إرسال ملف الـ ROM على شكل حزم (Packets) بحجم 1024 بايت مع حساب Checksum
-                val chunkSize = 1024
-                val totalChunks = (firmwareBytes.size + chunkSize - 1) / chunkSize
-
-                for (i in 0 until totalChunks) {
-                    val fromIndex = i * chunkSize
-                    val toIndex = minOf(fromIndex + chunkSize, firmwareBytes.size)
-                    val chunk = firmwareBytes.copyOfRange(fromIndex, toIndex)
-
-                    // حساب الـ Checksum للحزمة
-                    var checksum = 0
-                    for (b in chunk) checksum += b.toInt() and 0xFF
-
-                    // إرسال الحزمة عبر السيريال
-                    delay(10) // التأخير الافتراضي لضمان استقرار الكتابة
-
-                    if ((i + 1) % 500 == 0 || i == totalChunks - 1) {
-                        val progress = ((i + 1).toFloat() / totalChunks * 100).toInt()
-                        logMessage("جاري إرسال البيانات: $progress% (الحزمة ${i + 1} من $totalChunks)")
+                            val progress = if (fileSize > 0) (totalRead * 100 / fileSize) else 0
+                            withContext(Dispatchers.Main) {
+                                progressBar.progress = progress
+                                txtStatus.text = "جاري الإرسال: $progress%"
+                            }
+                        }
                     }
                 }
 
-                logMessage("✔ تم شحن الفلاشة بالكامل بنجاح! اعِد تشغيل الرسيفر الآن.")
+                withContext(Dispatchers.Main) {
+                    progressBar.progress = 100
+                    logStatus("اكتمل النقل بنجاح!")
+                    Toast.makeText(this@MainActivity, "تمت العملية بنجاح!", Toast.LENGTH_LONG).show()
+                }
 
             } catch (e: Exception) {
-                logError("حدث خطأ أثناء التفليش: ${e.localizedMessage}")
+                withContext(Dispatchers.Main) {
+                    logStatus("حدث خطأ أثناء النقل: ${e.message}")
+                }
             } finally {
-                resetUiState()
+                try { port.close() } catch (_: Exception) {}
             }
-        }
-    }
-
-    private suspend fun logMessage(msg: String) {
-        withContext(Dispatchers.Main) {
-            tvStatusLog.append("\n[INFO] $msg")
-        }
-    }
-
-    private suspend fun logError(errorMsg: String) {
-        withContext(Dispatchers.Main) {
-            tvStatusLog.append("\n[ERROR] $errorMsg")
-        }
-    }
-
-    private suspend fun resetUiState() {
-        withContext(Dispatchers.Main) {
-            isFlashing = false
-            btnStartFlashing.isEnabled = true
         }
     }
 
     private fun getFileName(uri: Uri): String {
-        var name = "flash.bin"
-        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (cursor.moveToFirst() && nameIndex != -1) {
-                name = cursor.getString(nameIndex)
+        var result: String? = null
+        if (uri.scheme == "content") {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1) {
+                        result = cursor.getString(nameIndex)
+                    }
+                }
             }
         }
-        return name
+        if (result == null) {
+            result = uri.path
+            val cut = result?.lastIndexOf('/') ?: -1
+            if (cut != -1) {
+                result = result?.substring(cut + 1)
+            }
+        }
+        return result ?: "firmware.bin"
+    }
+
+    private fun logStatus(message: String) {
+        val currentText = txtStatus.text.toString()
+        txtStatus.text = "$currentText\n$message"
     }
 }
