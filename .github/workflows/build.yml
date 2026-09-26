@@ -12,12 +12,8 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v2
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
     - name: Build APK
-      run: ./gradlew assembleDebug
+      run: gradle assembleDebug
     - name: Upload APK
       uses: actions/upload-artifact@v3
       with:
