@@ -1,17 +1,15 @@
-
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
-    android:background="#FFFFFF">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- العنوان -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -25,10 +23,10 @@
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="منفذ USB / COM:"/>
         <Spinner android:id="@+id/spinnerUsb" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginBottom="8dp"/>
 
-        <!-- معدل السرعة والرام -->
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+        <!-- معدل السرعة ونوع الرام -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="4dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="السرعة (Baud Rate):"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="معدل السرعة (Baud Rate):"/>
                 <Spinner android:id="@+id/spinnerBaudRate" android:layout_width="match_parent" android:layout_height="48dp"/>
             </LinearLayout>
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp">
@@ -37,18 +35,18 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- نوع المعالج (الجديد) -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="نوع المعالج (Chip Type):"/>
+        <!-- نوع المعالج (إضافة جديدة) -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="نوع المعالج (Chip Type):" android:layout_marginTop="8dp"/>
         <Spinner android:id="@+id/spinnerChipType" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginBottom="8dp"/>
 
         <!-- نوع العملية -->
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="نوع العملية:"/>
         <Spinner android:id="@+id/spinnerOperation" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginBottom="8dp"/>
 
-        <!-- التخزين والقسم -->
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+        <!-- نوع التخزين والقسم -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="4dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="التخزين (Storage):"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="نوع التخزين (Storage):"/>
                 <Spinner android:id="@+id/spinnerStorage" android:layout_width="match_parent" android:layout_height="48dp"/>
             </LinearLayout>
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp">
@@ -57,37 +55,37 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- عناوين الذاكرة (الجديد) -->
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="16dp">
+        <!-- عناوين الذاكرة (إضافة جديدة) -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="4dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="عنوان البداية (Start):"/>
-                <com.google.android.material.textfield.TextInputEditText android:id="@+id/etStartAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="0x000000"/>
+                <EditText android:id="@+id/etStartAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="0x000000" android:inputType="text"/>
             </LinearLayout>
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="4dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="طول الملف (Length):"/>
-                <com.google.android.material.textfield.TextInputEditText android:id="@+id/etFileLength" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="0x800000"/>
+                <EditText android:id="@+id/etFileLength" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="0x800000" android:inputType="text"/>
             </LinearLayout>
         </LinearLayout>
 
-        <!-- اختيار ملف السوفت وير -->
-        <Button android:id="@+id/btnSelectFile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="اختيار ملف السوفت وير"/>
-        <TextView android:id="@+id/tvSelectedFile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="الملف المحدد: لا يوجد" android:textSize="12sp" android:layout_marginBottom="8dp"/>
+        <!-- الأزرار -->
+        <Button android:id="@+id/btnSelectFile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="اختيار ملف السوفت وير" android:layout_marginTop="8dp"/>
+        <Button android:id="@+id/btnSaveDumpPath" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="تحديد مسار الحفظ (Dump Path)"/>
+        
+        <TextView android:id="@+id/tvSelectedFile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="الملف المحدد: لا يوجد" android:gravity="end" android:layout_marginBottom="8dp"/>
 
-        <!-- مسار الحفظ لعملية السحب (الجديد) -->
-        <Button android:id="@+id/btnSaveDumpPath" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="تحديد مسار الحفظ (Dump Path)" android:layout_marginBottom="16dp"/>
-
-        <!-- أزرار التشغيل والإيقاف (الجديد) -->
+        <!-- أزرار التشغيل والإلغاء (معدلة) -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="16dp">
-            <Button android:id="@+id/btnStartProcess" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="بدء العملية" android:layout_marginEnd="4dp"/>
-            <Button android:id="@+id/btnStopProcess" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="إلغاء (Stop)" android:layout_marginStart="4dp"/>
+            <Button android:id="@+id/btnStartProcess" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="بدء العملية" android:backgroundTint="#2E7D32" android:textColor="#FFFFFF" android:layout_marginEnd="4dp"/>
+            <Button android:id="@+id/btnStopProcess" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="إلغاء (Stop)" android:backgroundTint="#C62828" android:textColor="#FFFFFF" android:layout_marginStart="4dp"/>
         </LinearLayout>
 
-        <!-- شريط التقدم (الجديد) -->
-        <ProgressBar android:id="@+id/progressBar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="100"/>
+        <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="الحالة: بانتظار بدء العملية..."/>
 
-        <!-- سجل العمليات (الجديد) -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="سجل العمليات (Console):" android:textStyle="bold" android:layout_marginTop="8dp"/>
-        <EditText android:id="@+id/etConsoleLog" android:layout_width="match_parent" android:layout_height="150dp" android:background="#EEEEEE" android:gravity="top|start" android:padding="8dp" android:textSize="12sp" android:focusable="false" android:inputType="textMultiLine" android:layout_marginBottom="16dp"/>
+        <!-- شريط التقدم وسجل العمليات (إضافة جديدة) -->
+        <ProgressBar android:id="@+id/progressBar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="100" android:progress="0" android:layout_marginTop="8dp"/>
+        
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="سجل العمليات (Console Log):" android:textStyle="bold" android:layout_marginTop="8dp"/>
+        <EditText android:id="@+id/etConsoleLog" android:layout_width="match_parent" android:layout_height="120dp" android:background="#EEEEEE" android:gravity="top" android:padding="8dp" android:textSize="12sp" android:editable="false" android:focusable="false" android:inputType="textMultiLine" android:layout_marginTop="4dp"/>
 
     </LinearLayout>
 </ScrollView>
