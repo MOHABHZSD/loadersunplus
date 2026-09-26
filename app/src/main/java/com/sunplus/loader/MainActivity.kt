@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.view.WindowManager
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -20,6 +21,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 
@@ -30,11 +32,9 @@ class MainActivity : AppCompatActivity() {
     private var usbSerialPort: UsbSerialPort? = null
     private val availableDevices = mutableListOf<UsbDevice>()
 
-    // مسارات الملفات
     private var selectedFileUri: Uri? = null
     private var dumpFileUri: Uri? = null
 
-    // عناصر الواجهة
     private lateinit var spinnerUsb: Spinner
     private lateinit var spinnerBaudRate: Spinner
     private lateinit var spinnerRam: Spinner
@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var etConsoleLog: EditText
 
-    // معالجات اختيار وحفظ الملفات (الطريقة الحديثة)
     private val selectFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
@@ -79,11 +78,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 1. تفعيل الوضع الداكن إجبارياً
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        
+        // 2. منع الشاشة من الانطفاء ومنع النظام من تقييد التطبيق أثناء التفليش
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         setContentView(R.layout.activity_main)
 
         usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
 
-        // ربط العناصر
         spinnerUsb = findViewById(R.id.spinnerUsb)
         spinnerBaudRate = findViewById(R.id.spinnerBaudRate)
         spinnerRam = findViewById(R.id.spinnerRam)
@@ -103,7 +108,6 @@ class MainActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         etConsoleLog = findViewById(R.id.etConsoleLog)
 
-        // إعدادات القوائم (Sunplus 4M Exclusive)
         spinnerChipType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("1506TV / 1506F", "1506G / 1507G", "1506T"))
         spinnerRam.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("DDR2 (512)"))
         spinnerBaudRate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("115200"))
@@ -114,30 +118,22 @@ class MainActivity : AppCompatActivity() {
         etStartAddress.setText("0x000000")
         etFileLength.setText("0x400000")
 
-        // ==========================================
-        // برمجة أزرار الملفات التي كانت معطلة
-        // ==========================================
-        
-        // زر اختيار ملف السوفت وير (للكتابة)
         btnSelectFile.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
-                type = "*/*" // يسمح باختيار أي ملف (بما فيها .bin)
+                type = "*/*"
             }
             selectFileLauncher.launch(intent)
         }
 
-        // زر تحديد مسار الحفظ (للسحب Dump)
         btnSaveDumpPath.setOnClickListener {
             val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "application/octet-stream"
-                putExtra(Intent.EXTRA_TITLE, "dump_4M.bin") // الاسم الافتراضي للملف
+                putExtra(Intent.EXTRA_TITLE, "dump_4M.bin")
             }
             createFileLauncher.launch(intent)
         }
-
-        // ==========================================
 
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         registerReceiver(usbReceiver, filter)
@@ -153,7 +149,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // دالة لاستخراج اسم الملف من الـ URI الخاص به
     private fun getFileName(uri: Uri): String {
         var result: String? = null
         if (uri.scheme == "content") {
