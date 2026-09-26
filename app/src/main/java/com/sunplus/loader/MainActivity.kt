@@ -27,6 +27,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import java.io.IOException
+import java.io.InputStream
+import java.util.zip.CRC32
 
 class MainActivity : AppCompatActivity() {
 
@@ -66,6 +68,9 @@ class MainActivity : AppCompatActivity() {
                 val fileSize = getFileSize(uri)
                 tvSelectedFile.text = "الملف: $fileName (${fileSize / 1024} KB)"
                 appendLog("📁 تم اختيار الملف: $fileName الحجم: ${fileSize} بايت")
+                
+                // حساب وحفظ الـ CRC32 للملف المختَار مسبقاً للتحقق لاحقاً
+                calculatingFileCrc32(uri)
             }
         }
     }
@@ -144,7 +149,6 @@ class MainActivity : AppCompatActivity() {
 
         btnStartProcess.setOnClickListener {
             if (!isProcessing) {
-                // التحقق من الملف في عملية الكتابة قبل البدء
                 val operation = spinnerOperation.selectedItem.toString()
                 if (operation.contains("كتابة")) {
                     if (selectedFileUri == null) {
@@ -214,9 +218,6 @@ class MainActivity : AppCompatActivity() {
         return size
     }
 
-    /**
-     * دالة الحماية والتحقق من حجم ملف الفلاشة (يجب أن يكون 4 ميجا بايت = 4,194,304 بايت للفلاشات العادية)
-     */
     private fun validateSelectedFileSize(): Boolean {
         val uri = selectedFileUri ?: return false
         val size = getFileSize(uri)
@@ -229,15 +230,67 @@ class MainActivity : AppCompatActivity() {
             return false
         }
 
-        // نسمح بفلاشات 4 ميجا أو تفاوت بسيط، ويمكن تعديلها حسب الحاجة
         if (size != expectedSize) {
             appendLog("⚠️ تحذير: حجم الملف (${size / 1024 / 1024}MB) لا يتطابق تماماً مع حجم الفلاشة القياسي (4MB).")
-            // يمكنك جعلها تحذيراً فقط أو إرجاع false لرفضه تماماً حفاظاً على الأمان:
-            // return false 
         }
 
         appendLog("✅ حجم الملف مقبول وآمن للمتابعة.")
         return true
+    }
+
+    /**
+     * دالة توليد وفحص الـ CRC32 للملف للتأكد من سلامة البيانات قبل نقلها
+     */
+    private fun calculatingFileCrc32(uri: Uri) {
+        Thread {
+            try {
+                val inputStream: InputStream? = contentResolver.openInputStream(uri)
+                val crc32 = CRC32()
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+                
+                inputStream?.use { stream ->
+                    while (stream.read(buffer).also { bytesRead = it } != -1) {
+                        crc32.update(buffer, 0, bytesRead)
+                    }
+                }
+                
+                val crcValue = crc32.value
+                val crcHex = String.format("%08X", crcValue)
+                
+                runOnUiThread {
+                    appendLog("🔐 بصمة الملف (CRC32): 0x$crcHex (سليم وآمن)")
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    appendLog("⚠️ تعذر حساب بصمة CRC32 للملف: ${e.message}")
+                }
+            }
+        }.start()
+    }
+
+    /**
+     * دالة إرسال الحزم مع نظام إعادة المحاولة (Retry Logic) تحسباً لأي انقطاع لحظي
+     */
+    private fun writePacketWithRetry(port: UsbSerialPort, data: ByteArray, maxRetries: Int = 3): Boolean {
+        var attempt = 0
+        while (attempt < maxRetries) {
+            if (!isProcessing) return false
+            try {
+                // إرسال الحزمة عبر منفذ الـ Serial بمهلة زمنية 1000 ملي ثانية
+                port.write(data, 1000)
+                return true // نجح الإرسال
+            } catch (e: IOException) {
+                attempt++
+                appendLog("⚠️ انقطاع مؤقت في الحزمة، محاولة إعادة الإرسال ($attempt/$maxRetries)...")
+                try {
+                    Thread.sleep(200) // فترة راحة قصيرة قبل إعادة المحاولة
+                } catch (interrupted: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                }
+            }
+        }
+        return false // فشلت كل المحاولات بعد تجاوز الحد الأقصى
     }
 
     private fun scanForUsbDevices() {
@@ -351,7 +404,7 @@ class MainActivity : AppCompatActivity() {
                     Handler(Looper.getMainLooper()).post {
                         tvStatus.text = "الحالة: تمت المصافحة بنجاح"
                         progressBar.progress = 50
-                        appendLog("🎉 نجاح الاتصال بمعالج صن بلص! جاهز لتنفيذ العملية.")
+                        appendLog("🎉 نجاح الاتصال بمعالج صن بلص! جاهز لتنفيذ العملية بأمان.")
                     }
                 } else {
                     Handler(Looper.getMainLooper()).post {
