@@ -242,7 +242,6 @@ class MainActivity : AppCompatActivity() {
             tvStatus.text = "الحالة: متصل"
             appendLog("🚀 تم فتح المنفذ بنجاح بسرعة $baudRate")
             
-            // بدء دالة المصافحة في خلفية النظام
             startSunplusHandshake()
             
         } catch (e: Exception) {
@@ -251,9 +250,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * دالة المصافحة والاتصال بمعالج صن بلص (Sunplus Handshake)
-     */
     private fun startSunplusHandshake() {
         isProcessing = true
         progressBar.progress = 10
@@ -269,17 +265,14 @@ class MainActivity : AppCompatActivity() {
                     return@Thread
                 }
 
-                // محاولة إرسال نبضات المزامنة أو الاستماع لاستجابة الإقلاع من المعالج
                 val buffer = ByteArray(64)
                 val startTime = System.currentTimeMillis()
                 var connected = false
 
-                // الاستماع لمدة 10 ثوانٍ بانتظار استجابة الرسيفر عند إعادة الإقلاع
                 while (System.currentTimeMillis() - startTime < 10000) {
                     if (!isProcessing) break
 
                     try {
-                        // قراءة البيانات القادمة من الرسيفر (إن وجدت)
                         val len = port.read(buffer, 200)
                         if (len > 0) {
                             connected = true
@@ -287,7 +280,7 @@ class MainActivity : AppCompatActivity() {
                             break
                         }
                     } catch (e: IOException) {
-                        // تجاهل مهلة القراءة المؤقتة واستمرار المحاولة
+                        // تجاهل المؤقت
                     }
                 }
 
@@ -329,8 +322,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val usbReceiver = object : BroadcastReceiver() {
-        if (ACTION_USB_PERMISSION == intent.action) {
-            override fun onReceive(context: Context, intent: Intent) {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (ACTION_USB_PERMISSION == intent.action) {
                 synchronized(this) {
                     val device: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
