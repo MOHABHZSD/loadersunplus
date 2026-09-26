@@ -1,5 +1,6 @@
 package com.sunplus.loader
 
+import android.app.Activity
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -7,14 +8,17 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
@@ -25,6 +29,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var usbManager: UsbManager
     private var usbSerialPort: UsbSerialPort? = null
     private val availableDevices = mutableListOf<UsbDevice>()
+
+    // مسارات الملفات
+    private var selectedFileUri: Uri? = null
+    private var dumpFileUri: Uri? = null
 
     // عناصر الواجهة
     private lateinit var spinnerUsb: Spinner
@@ -46,13 +54,36 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var etConsoleLog: EditText
 
+    // معالجات اختيار وحفظ الملفات (الطريقة الحديثة)
+    private val selectFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                selectedFileUri = uri
+                val fileName = getFileName(uri)
+                tvSelectedFile.text = "الملف المحدد: $fileName"
+                appendLog("📁 تم اختيار ملف السوفت وير: $fileName")
+            }
+        }
+    }
+
+    private val createFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                dumpFileUri = uri
+                val fileName = getFileName(uri)
+                tvSelectedFile.text = "مسار الحفظ: $fileName"
+                appendLog("💾 تم تحديد مسار الحفظ (Dump): $fileName")
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
 
-        // ربط جميع العناصر
+        // ربط العناصر
         spinnerUsb = findViewById(R.id.spinnerUsb)
         spinnerBaudRate = findViewById(R.id.spinnerBaudRate)
         spinnerRam = findViewById(R.id.spinnerRam)
@@ -72,34 +103,45 @@ class MainActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         etConsoleLog = findViewById(R.id.etConsoleLog)
 
-        // =========================================================
-        // حل مشكلة القوائم الفارغة وتثبيت المواصفات الحصرية (4M - 512 - DDR2)
-        // =========================================================
-        
-        // 1. قائمة المعالجات (كما تظهر في صورتك)
+        // إعدادات القوائم (Sunplus 4M Exclusive)
         spinnerChipType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("1506TV / 1506F", "1506G / 1507G", "1506T"))
-        
-        // 2. قائمة الرام (مثبتة حصرياً على DDR2 512)
         spinnerRam.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("DDR2 (512)"))
-        
-        // 3. السرعة
         spinnerBaudRate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("115200"))
-        
-        // 4. العمليات والتخزين
         spinnerOperation.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("سحب (Dump)", "كتابة (Write)", "مسح (Erase)"))
         spinnerStorage.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("SPI Flash"))
         spinnerSection.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("الكل (Full Flash)"))
 
-        // 5. إجبار طول الملف ليكون 4 ميجا (0x400000) حتى لو كان مكتوباً في التصميم 8 ميجا
         etStartAddress.setText("0x000000")
         etFileLength.setText("0x400000")
+
+        // ==========================================
+        // برمجة أزرار الملفات التي كانت معطلة
+        // ==========================================
         
-        // =========================================================
+        // زر اختيار ملف السوفت وير (للكتابة)
+        btnSelectFile.setOnClickListener {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*" // يسمح باختيار أي ملف (بما فيها .bin)
+            }
+            selectFileLauncher.launch(intent)
+        }
+
+        // زر تحديد مسار الحفظ (للسحب Dump)
+        btnSaveDumpPath.setOnClickListener {
+            val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/octet-stream"
+                putExtra(Intent.EXTRA_TITLE, "dump_4M.bin") // الاسم الافتراضي للملف
+            }
+            createFileLauncher.launch(intent)
+        }
+
+        // ==========================================
 
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         registerReceiver(usbReceiver, filter)
 
-        // البحث عن وصلة USB عند فتح التطبيق
         scanForUsbDevices()
 
         btnStartProcess.setOnClickListener {
@@ -109,6 +151,30 @@ class MainActivity : AppCompatActivity() {
         btnStopProcess.setOnClickListener {
             disconnectDevice()
         }
+    }
+
+    // دالة لاستخراج اسم الملف من الـ URI الخاص به
+    private fun getFileName(uri: Uri): String {
+        var result: String? = null
+        if (uri.scheme == "content") {
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val index = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (index != -1) {
+                        result = it.getString(index)
+                    }
+                }
+            }
+        }
+        if (result == null) {
+            result = uri.path
+            val cut = result?.lastIndexOf('/') ?: -1
+            if (cut != -1) {
+                result = result?.substring(cut + 1)
+            }
+        }
+        return result ?: "ملف غير معروف"
     }
 
     private fun scanForUsbDevices() {
