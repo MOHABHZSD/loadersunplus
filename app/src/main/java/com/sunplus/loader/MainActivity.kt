@@ -1,95 +1,87 @@
 package com.sunplus.loader
 
-import android.content.Context
-import android.hardware.usb.UsbManager
+import android.net.Uri
 import android.os.Bundle
-import android.widget.*
+import android.provider.OpenableColumns
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.hoho.android.usbserial.driver.UsbSerialPort
-import com.hoho.android.usbserial.driver.UsbSerialProber
-import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
-    private var usbPort: UsbSerialPort? = null
-    private val FLASH_SIZE_4MB = 4194304L 
-    private lateinit var statusTextView: TextView
-    private lateinit var progressBar: ProgressBar
+
+    private lateinit var btnSelectFile: Button
+    private lateinit var btnStartFlashing: Button
+    private lateinit var tvSelectedFile: TextView
+    private lateinit var tvStatusLog: TextView
+    private lateinit var spinnerChipset: Spinner
+
+    private var selectedFileUri: Uri? = null
+
+    // فتح متصفح ملفات أندرويد اختيار ملف .bin
+    private val openFileLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            selectedFileUri = uri
+            val fileName = getFileName(uri)
+            tvSelectedFile.text = "الملف المحدد: $fileName"
+            logMessage("تم اختيار الملف: $fileName")
+        } else {
+            Toast.makeText(this, "لم يتم اختيار أي ملف", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        statusTextView = findViewById(R.id.txtStatus)
-        progressBar = findViewById(R.id.progressBar)
-        val spinner = findViewById<Spinner>(R.id.spinnerCpu)
-        
-        spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Sunplus 1506TV (4M)", "Sunplus 1506HV (4M)"))
+        btnSelectFile = findViewById(R.id.btnSelectFile)
+        btnStartFlashing = findViewById(R.id.btnStartFlashing)
+        tvSelectedFile = findViewById(R.id.tvSelectedFile)
+        tvStatusLog = findViewById(R.id.tvStatusLog)
+        spinnerChipset = findViewById(R.id.spinnerChipset)
 
-        findViewById<Button>(R.id.btnStart).setOnClickListener { startConnection() }
-    }
+        setupSpinner()
 
-    private fun startConnection() {
-        val manager = getSystemService(Context.USB_SERVICE) as UsbManager
-        val drivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager)
-        if (drivers.isEmpty()) {
-            statusTextView.text = "CH340N module not found"
-            return
+        // عند الضغط على زر اختيار الملف
+        btnSelectFile.setOnClickListener {
+            openFileLauncher.launch("*/*")
         }
-        val driver = drivers[0]
-        val connection = manager.openDevice(driver.device) ?: return
-        usbPort = driver.ports[0]
-        
-        try {
-            usbPort?.open(connection)
-            usbPort?.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
-            statusTextView.text = "Connected. Turn on the receiver to sync..."
-            flashFirmware()
-        } catch (e: Exception) {
-            statusTextView.text = "Error: ${e.message}"
-        }
-    }
 
-    private fun flashFirmware() {
-        thread {
-            try {
-                val syncByte = byteArrayOf(0x03)
-                val readBuf = ByteArray(32)
-                var synced = false
-                val start = System.currentTimeMillis()
-                
-                while (System.currentTimeMillis() - start < 10000) {
-                    usbPort?.write(syncByte, 100)
-                    val len = usbPort?.read(readBuf, 50) ?: 0
-                    if (len > 0 && readBuf[0] == 0x55.toByte()) {
-                        synced = true
-                        break
-                    }
-                    Thread.sleep(10)
-                }
-
-                if (!synced) {
-                    runOnUiThread { statusTextView.text = "Sync failed. Restart the receiver." }
-                    return@thread
-                }
-
-                runOnUiThread { statusTextView.text = "Synced. Starting flash (4MB)..." }
-                val chunk = ByteArray(1024) { 0xFF.toByte() }
-                val steps = (FLASH_SIZE_4MB / 1024).toInt()
-
-                for (i in 0 until steps) {
-                    usbPort?.write(chunk, 1000)
-                    val prog = ((i.toFloat() / steps) * 100).toInt()
-                    runOnUiThread {
-                        progressBar.progress = prog
-                        statusTextView.text = "$prog%"
-                    }
-                }
-                runOnUiThread { statusTextView.text = "Flash complete! Restart receiver." }
-            } catch (e: Exception) {
-                runOnUiThread { statusTextView.text = "Stopped: ${e.message}" }
-            } finally {
-                usbPort?.close()
+        // عند الضغط على زر بدء الشحن
+        btnStartFlashing.setOnClickListener {
+            if (selectedFileUri == null) {
+                Toast.makeText(this, "يرجى اختيار ملف الفلاشة (.bin) أولاً!", Toast.LENGTH_LONG).show()
+                logMessage("خطأ: يجب اختيار ملف الفلاشة قبل بدء الشحن.")
+            } else {
+                logMessage("جاري بدء الاتصال بالريسيفر عبر وصلة OTG وشحن الملف...")
             }
         }
+    }
+
+    private fun setupSpinner() {
+        val chipsets = arrayOf("Sunplus 1506TV (4M)", "Sunplus 1506HV (4M)", "Sunplus 1506F (4M)", "Sunplus 1507 / 2507 (8M)")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, chipsets)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerChipset.adapter = adapter
+    }
+
+    private fun getFileName(uri: Uri): String {
+        var name = "flash.bin"
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (cursor.moveToFirst() && nameIndex != -1) {
+                name = cursor.getString(nameIndex)
+            }
+        }
+        return name
+    }
+
+    private fun logMessage(msg: String) {
+        tvStatusLog.append("\n$msg")
     }
 }
