@@ -11,10 +11,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
+import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -23,7 +25,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.hoho.android.usbserial.driver.UsbSerialDriver
-import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var spinnerComPort: Spinner
     private lateinit var spinnerBaudRate: Spinner
+    private lateinit var spinnerParity: Spinner
     private lateinit var spinnerDdrType: Spinner
     private lateinit var spinnerChipType: Spinner
     private lateinit var spinnerOperateType: Spinner
@@ -53,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var txtFileName: TextView
     private lateinit var txtStatus: TextView
     private lateinit var txtConsoleLog: TextView
+    private lateinit var scrollLog: ScrollView
     private lateinit var progressBar: ProgressBar
 
     private var selectedFileUri: Uri? = null
@@ -104,6 +107,7 @@ class MainActivity : AppCompatActivity() {
     private fun initViews() {
         spinnerComPort = findViewById(R.id.spinnerComPort)
         spinnerBaudRate = findViewById(R.id.spinnerBaudRate)
+        spinnerParity = findViewById(R.id.spinnerParity)
         spinnerDdrType = findViewById(R.id.spinnerDdrType)
         spinnerChipType = findViewById(R.id.spinnerChipType)
         spinnerOperateType = findViewById(R.id.spinnerOperateType)
@@ -118,11 +122,13 @@ class MainActivity : AppCompatActivity() {
         txtFileName = findViewById(R.id.txtFileName)
         txtStatus = findViewById(R.id.txtStatus)
         txtConsoleLog = findViewById(R.id.txtConsoleLog)
+        scrollLog = findViewById(R.id.scrollLog)
         progressBar = findViewById(R.id.progressBar)
     }
 
     private fun setupSpinners() {
         val baudRates = arrayOf("115200", "57600", "38400", "19200", "9600")
+        val parityOptions = arrayOf("None", "Even", "Odd", "Mark", "Space")
         val ddrTypes = arrayOf("DDR2 (512)", "DDR3 (1G)", "DDR3 (2G)", "Auto")
         val chipTypes = arrayOf("1506TV / 1506F", "1506G / 1507G", "1506A / 1506C", "1503TV / 1505TV")
         val operateTypes = arrayOf("كتابة (Write)", "سحب (Dump)", "مسح (Erase)")
@@ -130,6 +136,7 @@ class MainActivity : AppCompatActivity() {
         val sectionTypes = arrayOf("الكل (Full Flash)", "Bootloader", "Main Code", "User Data")
 
         setSpinnerAdapter(spinnerBaudRate, baudRates)
+        setSpinnerAdapter(spinnerParity, parityOptions)
         setSpinnerAdapter(spinnerDdrType, ddrTypes)
         setSpinnerAdapter(spinnerChipType, chipTypes)
         setSpinnerAdapter(spinnerOperateType, operateTypes)
@@ -202,10 +209,11 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                val crcHex = String.format("%08X", crc.value)
                 val sizeInKB = fileSize / 1024
                 withContext(Dispatchers.Main) {
-                    txtFileName.text = "الملف المحدد: $fileName ($sizeInKB KB)"
-                    logConsole("📁 تم اختيار الملف: $fileName الحجم: $fileSize بايت")
+                    txtFileName.text = "الملف المحدد: $fileName\nحجم الملف: $fileSize بايت ($sizeInKB KB) | CRC32: 0x$crcHex"
+                    logConsole("📁 تم اختيار الملف: $fileName\n📊 الحجم: $fileSize بايت | CRC32: 0x$crcHex")
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -261,8 +269,9 @@ class MainActivity : AppCompatActivity() {
                 progressBar.progress = 0
                 val chip = spinnerChipType.selectedItem.toString()
                 val op = spinnerOperateType.selectedItem.toString()
+                val parity = spinnerParity.selectedItem.toString()
                 txtStatus.text = "الحالة: جاري تنفيذ $op للمعالج $chip..."
-                logConsole("🚀 بدء عملية $op للمعالج $chip...")
+                logConsole("🚀 بدء عملية $op للمعالج $chip (Parity: $parity)...")
             }
 
             for (i in 1..100) {
@@ -281,8 +290,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun logConsole(message: String) {
-        val currentText = txtConsoleLog.text.toString()
-        txtConsoleLog.text = "$currentText\n$message"
+        runOnUiThread {
+            txtConsoleLog.append("\n$message")
+            scrollLog.post {
+                scrollLog.fullScroll(View.FOCUS_DOWN)
+            }
+        }
     }
 
     override fun onDestroy() {
