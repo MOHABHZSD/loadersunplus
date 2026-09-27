@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F5F5F5"
-    android:padding="12dp">
+    android:padding="10dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,11 +15,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="لودر صن بلص (Sunplus Loader)"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="#333333"
             android:gravity="center"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="10dp" />
 
         <!-- منفذ USB / COM -->
         <TextView
@@ -27,13 +27,15 @@
             android:layout_height="wrap_content"
             android:text="منفذ USB / COM:"
             android:textColor="#555555"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
 
         <Spinner
             android:id="@+id/spinnerComPort"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginBottom="8dp" />
+            android:layout_height="40dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:layout_marginBottom="6dp" />
 
         <!-- معدل السرعة + التكافؤ (Parity) -->
         <LinearLayout
@@ -48,19 +50,19 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginEnd="4dp">
+                android:layout_marginEnd="6dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="معدل السرعة (Baud Rate):"
                     android:textColor="#555555"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <Spinner
                     android:id="@+id/spinnerBaudRate"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp" />
+                    android:layout_height="40dp" />
             </LinearLayout>
 
             <LinearLayout
@@ -68,19 +70,19 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="4dp">
+                android:layout_marginStart="6dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="التكافؤ (Parity):"
                     android:textColor="#555555"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <Spinner
                     android:id="@+id/spinnerParity"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp" />
+                    android:layout_height="40dp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -88,7 +90,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:orientation="horizontal"
             android:weightSum="2"
             android:baselineAligned="false">
@@ -98,19 +100,19 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginEnd="4dp">
+                android:layout_marginEnd="6dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="نوع الرام (DDR Type):"
                     android:textColor="#555555"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <Spinner
                     android:id="@+id/spinnerDdrType"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp" />
+                    android:layout_height="40dp" />
             </LinearLayout>
 
             <LinearLayout
@@ -118,19 +120,19 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="4dp">
+                android:layout_marginStart="6dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="نوع المعالج (Chip Type):"
                     android:textColor="#555555"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <Spinner
                     android:id="@+id/spinnerChipType"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp" />
+                    android:layout_height="40dp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -138,16 +140,16 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:text="نوع العملية:"
             android:textColor="#555555"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
 
         <Spinner
             android:id="@+id/spinnerOperateType"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginBottom="8dp" />
+            android:layout_height="40dp"
+            android:layout_marginBottom="6dp" />
 
         <!-- نوع التخزين + القسم -->
         <LinearLayout
@@ -162,19 +164,19 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginEnd="4dp">
+                android:layout_marginEnd="6dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="نوع التخزين (Storage):"
                     android:textColor="#555555"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <Spinner
                     android:id="@+id/spinnerStorage"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp" />
+                    android:layout_height="40dp" />
             </LinearLayout>
 
             <LinearLayout
@@ -182,19 +184,19 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="4dp">
+                android:layout_marginStart="6dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="القسم (Section):"
                     android:textColor="#555555"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <Spinner
                     android:id="@+id/spinnerSection"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp" />
+                    android:layout_height="40dp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -202,7 +204,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:orientation="horizontal"
             android:weightSum="2">
 
@@ -211,22 +213,23 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginEnd="4dp">
+                android:layout_marginEnd="6dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="عنوان البداية (Start):"
                     android:textColor="#555555"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <EditText
                     android:id="@+id/edtStartAddr"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="40dp"
                     android:text="0x000000"
                     android:inputType="text"
-                    android:textSize="14sp" />
+                    android:textSize="13sp"
+                    android:padding="6dp" />
             </LinearLayout>
 
             <LinearLayout
@@ -234,22 +237,23 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="4dp">
+                android:layout_marginStart="6dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="طول الملف (Length):"
                     android:textColor="#555555"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <EditText
                     android:id="@+id/edtLength"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="40dp"
                     android:text="0x400000"
                     android:inputType="text"
-                    android:textSize="14sp" />
+                    android:textSize="13sp"
+                    android:padding="6dp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -257,19 +261,21 @@
         <Button
             android:id="@+id/btnSelectFile"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_height="42dp"
+            android:layout_marginTop="10dp"
             android:backgroundTint="#D3D3D3"
             android:textColor="#000000"
+            android:textSize="13sp"
             android:text="اختيار ملف السوفت وير" />
 
         <Button
             android:id="@+id/btnSelectDumpPath"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="42dp"
             android:layout_marginTop="4dp"
             android:backgroundTint="#D3D3D3"
             android:textColor="#000000"
+            android:textSize="13sp"
             android:text="تحديد مسار الحفظ (DUMP PATH)" />
 
         <!-- تفاصيل الملف وحساب الـ CRC32 -->
@@ -280,20 +286,20 @@
             android:layout_marginTop="6dp"
             android:text="الملف المحدد: لا يوجد\nحجم الملف والـ CRC32: -"
             android:textColor="#555555"
-            android:textSize="13sp" />
+            android:textSize="12sp" />
 
         <!-- أزرار بدء وإلغاء العملية -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:orientation="horizontal"
             android:weightSum="2">
 
             <Button
                 android:id="@+id/btnStartFlashing"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="4dp"
                 android:backgroundTint="#2E7D32"
@@ -303,7 +309,7 @@
             <Button
                 android:id="@+id/btnStop"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
                 android:backgroundTint="#C62828"
@@ -319,7 +325,7 @@
             android:layout_marginTop="8dp"
             android:text="الحالة: بانتظار بدء العملية..."
             android:textColor="#555555"
-            android:textSize="13sp" />
+            android:textSize="12sp" />
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -329,20 +335,20 @@
             android:layout_marginTop="4dp"
             android:max="100" />
 
-        <!-- سجل العمليات (Console Log) القابل للتمرير والمستقل -->
+        <!-- سجل العمليات (Console Log) -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:text="سجل العمليات (Console Log):"
             android:textColor="#333333"
             android:textStyle="bold"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
 
         <ScrollView
             android:id="@+id/scrollLog"
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="130dp"
             android:layout_marginTop="4dp"
             android:background="#1E1E1E"
             android:padding="8dp">
@@ -352,7 +358,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="#00FF00"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:fontFamily="monospace"
                 android:text="🔍 لم يتم العثور على وصلة تحديث." />
         </ScrollView>
