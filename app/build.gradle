@@ -42,6 +42,6 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     
-    // USB Serial Library (مع إضافة حرف v للوسم الصحيح في JitPack)
-    implementation 'com.github.mik3y:usb-serial-android:v3.8.0'
+    // USB Serial Library المرفوعة رسمياً على Maven Central
+    implementation 'com.hoho.android:usb-serial-for-android:3.8.0'
 }
