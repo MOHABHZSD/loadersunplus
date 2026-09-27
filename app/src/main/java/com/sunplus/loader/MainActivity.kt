@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.provider.OpenableColumns
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Spinner
 import android.widget.TextView
@@ -38,16 +39,20 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var spinnerComPort: Spinner
     private lateinit var spinnerBaudRate: Spinner
-    private lateinit var spinnerParity: Spinner
     private lateinit var spinnerDdrType: Spinner
+    private lateinit var spinnerChipType: Spinner
     private lateinit var spinnerOperateType: Spinner
     private lateinit var spinnerStorage: Spinner
     private lateinit var spinnerSection: Spinner
+    private lateinit var edtStartAddr: EditText
+    private lateinit var edtLength: EditText
     private lateinit var btnSelectFile: Button
+    private lateinit var btnSelectDumpPath: Button
     private lateinit var btnStartFlashing: Button
+    private lateinit var btnStop: Button
     private lateinit var txtFileName: TextView
-    private lateinit var txtFileInfo: TextView
     private lateinit var txtStatus: TextView
+    private lateinit var txtConsoleLog: TextView
     private lateinit var progressBar: ProgressBar
 
     private var selectedFileUri: Uri? = null
@@ -66,9 +71,9 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        device?.let { logStatus("تم منح إذن USB للجهاز: ${it.deviceName}") }
+                        device?.let { logConsole("تم منح إذن USB للجهاز: ${it.deviceName}") }
                     } else {
-                        logStatus("تم رفض إذن USB")
+                        logConsole("تم رفض إذن USB")
                     }
                 }
             }
@@ -99,30 +104,34 @@ class MainActivity : AppCompatActivity() {
     private fun initViews() {
         spinnerComPort = findViewById(R.id.spinnerComPort)
         spinnerBaudRate = findViewById(R.id.spinnerBaudRate)
-        spinnerParity = findViewById(R.id.spinnerParity)
         spinnerDdrType = findViewById(R.id.spinnerDdrType)
+        spinnerChipType = findViewById(R.id.spinnerChipType)
         spinnerOperateType = findViewById(R.id.spinnerOperateType)
         spinnerStorage = findViewById(R.id.spinnerStorage)
         spinnerSection = findViewById(R.id.spinnerSection)
+        edtStartAddr = findViewById(R.id.edtStartAddr)
+        edtLength = findViewById(R.id.edtLength)
         btnSelectFile = findViewById(R.id.btnSelectFile)
+        btnSelectDumpPath = findViewById(R.id.btnSelectDumpPath)
         btnStartFlashing = findViewById(R.id.btnStartFlashing)
+        btnStop = findViewById(R.id.btnStop)
         txtFileName = findViewById(R.id.txtFileName)
-        txtFileInfo = findViewById(R.id.txtFileInfo)
         txtStatus = findViewById(R.id.txtStatus)
+        txtConsoleLog = findViewById(R.id.txtConsoleLog)
         progressBar = findViewById(R.id.progressBar)
     }
 
     private fun setupSpinners() {
         val baudRates = arrayOf("115200", "57600", "38400", "19200", "9600")
-        val parityOptions = arrayOf("None", "Even", "Odd", "Mark", "Space")
-        val ddrTypes = arrayOf("DDR2", "DDR3", "Auto")
-        val operateTypes = arrayOf("تحديث (Flash)", "قراءة (Dump)", "مسح (Erase)")
+        val ddrTypes = arrayOf("DDR2 (512)", "DDR3 (1G)", "DDR3 (2G)", "Auto")
+        val chipTypes = arrayOf("1506TV / 1506F", "1506G / 1507G", "1506A / 1506C", "1503TV / 1505TV")
+        val operateTypes = arrayOf("كتابة (Write)", "سحب (Dump)", "مسح (Erase)")
         val storageTypes = arrayOf("SPI Flash", "NAND Flash", "eMMC")
         val sectionTypes = arrayOf("الكل (Full Flash)", "Bootloader", "Main Code", "User Data")
 
         setSpinnerAdapter(spinnerBaudRate, baudRates)
-        setSpinnerAdapter(spinnerParity, parityOptions)
         setSpinnerAdapter(spinnerDdrType, ddrTypes)
+        setSpinnerAdapter(spinnerChipType, chipTypes)
         setSpinnerAdapter(spinnerOperateType, operateTypes)
         setSpinnerAdapter(spinnerStorage, storageTypes)
         setSpinnerAdapter(spinnerSection, sectionTypes)
@@ -142,7 +151,8 @@ class MainActivity : AppCompatActivity() {
 
         val deviceNames = mutableListOf<String>()
         if (availableDrivers.isEmpty()) {
-            deviceNames.add("لا يوجد جهاز USB متصل")
+            deviceNames.add("لا يوجد جهاز متصل")
+            logConsole("🔍 لم يتم العثور على وصلة تحديث.")
         } else {
             selectedDriver = availableDrivers[0]
             for (driver in availableDrivers) {
@@ -173,12 +183,11 @@ class MainActivity : AppCompatActivity() {
         if (uri != null) {
             selectedFileUri = uri
             val fileName = getFileNameFromUri(uri)
-            txtFileName.text = "الملف المحدد: $fileName"
-            processSelectedFile(uri)
+            processSelectedFile(uri, fileName)
         }
     }
 
-    private fun processSelectedFile(uri: Uri) {
+    private fun processSelectedFile(uri: Uri, fileName: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 var fileSize = 0L
@@ -193,18 +202,15 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                val crcHex = String.format("%08X", crc.value)
                 val sizeInKB = fileSize / 1024
-                val sizeText = if (sizeInKB > 1024) "${sizeInKB / 1024} MB" else "$sizeInKB KB"
-
                 withContext(Dispatchers.Main) {
-                    txtFileInfo.text = "الحجم: $sizeText | CRC32: 0x$crcHex"
-                    logStatus("تم تحليل الملف: $sizeText (CRC32: 0x$crcHex)")
+                    txtFileName.text = "الملف المحدد: $fileName ($sizeInKB KB)"
+                    logConsole("📁 تم اختيار الملف: $fileName الحجم: $fileSize بايت")
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    txtFileInfo.text = "فشل في قراءة الملف"
-                    logStatus("خطأ في قراءة الملف: ${e.message}")
+                    txtFileName.text = "فشل في قراءة الملف"
+                    logConsole("❌ خطأ في قراءة الملف: ${e.message}")
                 }
             }
         }
@@ -215,17 +221,30 @@ class MainActivity : AppCompatActivity() {
             filePickerLauncher.launch("*/*")
         }
 
+        btnSelectDumpPath.setOnClickListener {
+            Toast.makeText(this, "تم اختيار مسار الحفظ الافتراضي", Toast.LENGTH_SHORT).show()
+            logConsole("📂 تم اختيار مسار الحفظ الافتراضي للـ Dump")
+        }
+
         btnStartFlashing.setOnClickListener {
-            if (selectedFileUri == null) {
+            val selectedOp = spinnerOperateType.selectedItem.toString()
+            if (selectedOp.contains("Write") && selectedFileUri == null) {
                 Toast.makeText(this, "يرجى اختيار ملف السوفت وير أولاً", Toast.LENGTH_SHORT).show()
+                logConsole("❌ يرجى اختيار ملف السوفت وير أولاً.")
                 return@setOnClickListener
             }
             startProcess()
         }
+
+        btnStop.setOnClickListener {
+            logConsole("⏹ تم إيقاف العملية بواسطة المستخدم.")
+            txtStatus.text = "الحالة: تم الإيقاف"
+            btnStartFlashing.isEnabled = true
+        }
     }
 
     private fun getFileNameFromUri(uri: Uri): String {
-        var name = "firmware.bin"
+        var name = "flashfile.bin"
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
             if (cursor.moveToFirst() && nameIndex != -1) {
@@ -240,37 +259,30 @@ class MainActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 btnStartFlashing.isEnabled = false
                 progressBar.progress = 0
-                val parityVal = spinnerParity.selectedItem.toString()
-                logStatus("بدء العملية برمز التكافؤ (Parity): $parityVal...")
+                val chip = spinnerChipType.selectedItem.toString()
+                val op = spinnerOperateType.selectedItem.toString()
+                txtStatus.text = "الحالة: جاري تنفيذ $op للمعالج $chip..."
+                logConsole("🚀 بدء عملية $op للمعالج $chip...")
             }
 
             for (i in 1..100) {
-                delay(50)
+                delay(40)
                 withContext(Dispatchers.Main) {
                     progressBar.progress = i
                 }
             }
 
             withContext(Dispatchers.Main) {
-                logStatus("اكتملت العملية بنجاح!")
+                txtStatus.text = "الحالة: اكتملت العملية بنجاح!"
+                logConsole("✅ اكتملت العملية بنجاح.")
                 btnStartFlashing.isEnabled = true
             }
         }
     }
 
-    private fun logStatus(message: String) {
-        val currentText = txtStatus.text.toString()
-        txtStatus.text = "$currentText\n$message"
-    }
-
-    private fun getSelectedParity(): Int {
-        return when (spinnerParity.selectedItem.toString()) {
-            "Even" -> UsbSerialPort.PARITY_EVEN
-            "Odd" -> UsbSerialPort.PARITY_ODD
-            "Mark" -> UsbSerialPort.PARITY_MARK
-            "Space" -> UsbSerialPort.PARITY_SPACE
-            else -> UsbSerialPort.PARITY_NONE
-        }
+    private fun logConsole(message: String) {
+        val currentText = txtConsoleLog.text.toString()
+        txtConsoleLog.text = "$currentText\n$message"
     }
 
     override fun onDestroy() {
