@@ -1,85 +1,66 @@
-package com.sunplus.loader
+package com.example.sunplusloader
 
-import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.OpenableColumns
-import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.ScrollView
-import android.widget.Spinner
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.hoho.android.usbserial.driver.UsbSerialDriver
+import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import java.io.InputStream
 import java.util.zip.CRC32
 
 class MainActivity : AppCompatActivity() {
 
-    private companion object {
-        private const val ACTION_USB_PERMISSION = "com.sunplus.loader.USB_PERMISSION"
-    }
+    private lateinit var uartManager: SunplusUartManager
+    private var isCancelled = false
+    private var selectedFileBytes: ByteArray? = null
+    private var dumpSaveUri: Uri? = null
+    private var availableDrivers: List<UsbSerialDriver> = emptyList()
 
-    private lateinit var spinnerComPort: Spinner
+    // عناصر الواجهة المطبقة في التصميم
+    private lateinit var spinnerUsbPort: Spinner
     private lateinit var spinnerBaudRate: Spinner
     private lateinit var spinnerParity: Spinner
-    private lateinit var spinnerDdrType: Spinner
     private lateinit var spinnerChipType: Spinner
-    private lateinit var spinnerOperateType: Spinner
-    private lateinit var spinnerStorage: Spinner
-    private lateinit var spinnerSection: Spinner
+    private lateinit var spinnerDdrType: Spinner
+    private lateinit var spinnerOpType: Spinner
     private lateinit var edtStartAddr: EditText
     private lateinit var edtLength: EditText
     private lateinit var btnSelectFile: Button
-    private lateinit var btnSelectDumpPath: Button
-    private lateinit var btnStartFlashing: Button
+    private lateinit var btnDumpPath: Button
+    private lateinit var btnStart: Button
     private lateinit var btnStop: Button
-    private lateinit var txtFileName: TextView
+    private lateinit var txtFileInfo: TextView
     private lateinit var txtStatus: TextView
-    private lateinit var txtConsoleLog: TextView
-    private lateinit var scrollLog: ScrollView
     private lateinit var progressBar: ProgressBar
+    private lateinit var txtConsoleLog: TextView
 
-    private var selectedFileUri: Uri? = null
-    private var usbManager: UsbManager? = null
-    private var selectedDriver: UsbSerialDriver? = null
-
-    private val usbReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (ACTION_USB_PERMISSION == intent.action) {
-                synchronized(this) {
-                    val device: UsbDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
-                    }
-
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        device?.let { logConsole("تم منح إذن USB للجهاز: ${it.deviceName}") }
-                    } else {
-                        logConsole("تم رفض إذن USB")
-                    }
-                }
+    // منتقي ملف السوفت وير للـ WRITE
+    private val selectFileLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            contentResolver.openInputStream(it)?.use { stream ->
+                selectedFileBytes = stream.readBytes()
+                val size = selectedFileBytes?.size ?: 0
+                val crc = calculateCRC32(selectedFileBytes!!)
+                txtFileInfo.text = "الملف المحدد: rom.bin\nحجم الملف: $size بايت (${size / 1024} KB) | CRC32: 0x${String.format("%08X", crc)}"
+                appendLog("📂 تم اختيار الملف: rom.bin")
+                appendLog("📊 الحجم: $size بايت | CRC32: 0x${String.format("%08X", crc)}")
             }
+        }
+    }
+
+    // تحديد مسار حفظ ملف الـ DUMP
+    private val createDumpFileLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri: Uri? ->
+        uri?.let {
+            dumpSaveUri = it
+            appendLog("📁 تم تحديد مسار حفظ النسخة الاحتياطية.")
         }
     }
 
@@ -87,221 +68,171 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
-
         initViews()
-        setupSpinners()
-        setupListeners()
-        registerUsbReceiver()
-    }
+        uartManager = SunplusUartManager(this)
 
-    private fun registerUsbReceiver() {
-        val filter = IntentFilter(ACTION_USB_PERMISSION)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.registerReceiver(this, usbReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(usbReceiver, filter)
-        }
+        scanUsbPorts()
+
+        btnSelectFile.setOnClickListener { selectFileLauncher.launch("*/*") }
+        btnDumpPath.setOnClickListener { createDumpFileLauncher.launch("dump_rom.bin") }
+        btnStart.setOnClickListener { startOperation() }
+        btnStop.setOnClickListener { isCancelled = true }
     }
 
     private fun initViews() {
-        spinnerComPort = findViewById(R.id.spinnerComPort)
+        spinnerUsbPort = findViewById(R.id.spinnerUsbPort)
         spinnerBaudRate = findViewById(R.id.spinnerBaudRate)
         spinnerParity = findViewById(R.id.spinnerParity)
-        spinnerDdrType = findViewById(R.id.spinnerDdrType)
         spinnerChipType = findViewById(R.id.spinnerChipType)
-        spinnerOperateType = findViewById(R.id.spinnerOperateType)
-        spinnerStorage = findViewById(R.id.spinnerStorage)
-        spinnerSection = findViewById(R.id.spinnerSection)
+        spinnerDdrType = findViewById(R.id.spinnerDdrType)
+        spinnerOpType = findViewById(R.id.spinnerOpType)
         edtStartAddr = findViewById(R.id.edtStartAddr)
         edtLength = findViewById(R.id.edtLength)
         btnSelectFile = findViewById(R.id.btnSelectFile)
-        btnSelectDumpPath = findViewById(R.id.btnSelectDumpPath)
-        btnStartFlashing = findViewById(R.id.btnStartFlashing)
+        btnDumpPath = findViewById(R.id.btnDumpPath)
+        btnStart = findViewById(R.id.btnStart)
         btnStop = findViewById(R.id.btnStop)
-        txtFileName = findViewById(R.id.txtFileName)
+        txtFileInfo = findViewById(R.id.txtFileInfo)
         txtStatus = findViewById(R.id.txtStatus)
-        txtConsoleLog = findViewById(R.id.txtConsoleLog)
-        scrollLog = findViewById(R.id.scrollLog)
         progressBar = findViewById(R.id.progressBar)
+        txtConsoleLog = findViewById(R.id.txtConsoleLog)
     }
 
-    private fun setupSpinners() {
-        val baudRates = arrayOf("115200", "57600", "38400", "19200", "9600")
-        val parityOptions = arrayOf("None", "Even", "Odd", "Mark", "Space")
-        val ddrTypes = arrayOf("DDR2 (512)", "DDR3 (1G)", "DDR3 (2G)", "Auto")
-        val chipTypes = arrayOf("1506TV / 1506F", "1506G / 1507G", "1506A / 1506C", "1503TV / 1505TV")
-        val operateTypes = arrayOf("كتابة (Write)", "سحب (Dump)", "مسح (Erase)")
-        val storageTypes = arrayOf("SPI Flash", "NAND Flash", "eMMC")
-        val sectionTypes = arrayOf("الكل (Full Flash)", "Bootloader", "Main Code", "User Data")
+    // اكتشاف منافذ الـ USB الموصولة
+    private fun scanUsbPorts() {
+        val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
 
-        setSpinnerAdapter(spinnerBaudRate, baudRates)
-        setSpinnerAdapter(spinnerParity, parityOptions)
-        setSpinnerAdapter(spinnerDdrType, ddrTypes)
-        setSpinnerAdapter(spinnerChipType, chipTypes)
-        setSpinnerAdapter(spinnerOperateType, operateTypes)
-        setSpinnerAdapter(spinnerStorage, storageTypes)
-        setSpinnerAdapter(spinnerSection, sectionTypes)
-
-        scanUsbDevices()
-    }
-
-    private fun setSpinnerAdapter(spinner: Spinner, items: Array<String>) {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, items)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
-    }
-
-    private fun scanUsbDevices() {
-        val manager = usbManager ?: return
-        val availableDrivers: List<UsbSerialDriver> = UsbSerialProber.getDefaultProber().findAllDrivers(manager)
-
-        val deviceNames = mutableListOf<String>()
+        val portNames = mutableListOf<String>()
         if (availableDrivers.isEmpty()) {
-            deviceNames.add("لا يوجد جهاز متصل")
-            logConsole("🔍 لم يتم العثور على وصلة تحديث.")
+            portNames.add("لا يوجد جهاز متصل")
+            appendLog("🔍 لم يتم العثور على وصلة تحديث.")
         } else {
-            selectedDriver = availableDrivers[0]
-            for (driver in availableDrivers) {
-                val device: UsbDevice = driver.device
-                deviceNames.add("${device.deviceName} (${device.vendorId}:${device.productId})")
-                requestUsbPermission(device)
+            availableDrivers.forEachIndexed { index, driver ->
+                portNames.add("USB Serial Device ${index + 1} (${driver.device.deviceName})")
             }
+            appendLog("✅ تم العثور على وصلة USB Serial.")
         }
-        setSpinnerAdapter(spinnerComPort, deviceNames.toTypedArray())
+
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, portNames)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerUsbPort.adapter = adapter
     }
 
-    private fun requestUsbPermission(device: UsbDevice) {
-        val manager = usbManager ?: return
-        if (!manager.hasPermission(device)) {
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                PendingIntent.FLAG_MUTABLE
-            } else {
-                0
-            }
-            val permissionIntent = PendingIntent.getBroadcast(this, 0, Intent(ACTION_USB_PERMISSION), flags)
-            manager.requestPermission(device, permissionIntent)
+    // التنفيذ الحقيقي بناءً على العملية المختارة من الواجهة
+    private fun startOperation() {
+        if (availableDrivers.isEmpty()) {
+            appendLog("❌ لا يوجد جهاز USB متصل بالهاتف!")
+            return
         }
-    }
 
-    private val filePickerLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            selectedFileUri = uri
-            val fileName = getFileNameFromUri(uri)
-            processSelectedFile(uri, fileName)
+        isCancelled = false
+        val selectedDriver = availableDrivers[spinnerUsbPort.selectedItemPosition]
+        val baudRate = spinnerBaudRate.selectedItem.toString().toIntOrDefault(115200)
+        val parity = if (spinnerParity.selectedItem.toString().contains("Even")) UsbSerialPort.PARITY_EVEN else UsbSerialPort.PARITY_NONE
+        val selectedOp = spinnerOpType.selectedItem.toString()
+
+        if (!uartManager.connectUsb(selectedDriver, baudRate, parity)) {
+            appendLog("❌ فشل فتح منفذ الـ USB.")
+            return
         }
-    }
 
-    private fun processSelectedFile(uri: Uri, fileName: String) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                var fileSize = 0L
-                val crc = CRC32()
-                val buffer = ByteArray(8192)
+        lifecycleScope.launch(Dispatchers.Main) {
+            btnStart.isEnabled = false
+            btnStop.isEnabled = true
 
-                contentResolver.openInputStream(uri)?.use { inputStream ->
-                    var bytesRead: Int
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        crc.update(buffer, 0, bytesRead)
-                        fileSize += bytesRead
+            // مرحلة التزامن الميداني
+            if (uartManager.performHandshake { appendLog(it) }) {
+
+                val ddrType = spinnerDdrType.selectedItem.toString()
+                val payloadFileName = if (ddrType.contains("DDR3")) "sunplus_1506tv_ddr3.bin" else "sunplus_1506tv_ddr2.bin"
+                val dramPayload = loadAssetsFile(payloadFileName)
+
+                if (dramPayload != null && uartManager.initializeDram(dramPayload) { appendLog(it) }) {
+
+                    val startAddr = edtStartAddr.text.toString().removePrefix("0x").toLongOrDefault(16, 0L)
+                    val length = edtLength.text.toString().removePrefix("0x").toLongOrDefault(16, 0x400000L)
+
+                    when {
+                        // 1. عملية الكتابة (WRITE)
+                        selectedOp.contains("كتابة") || selectedOp.contains("Write") -> {
+                            if (selectedFileBytes != null) {
+                                uartManager.writeFlash(
+                                    fileData = selectedFileBytes!!,
+                                    startAddress = startAddr,
+                                    onProgress = { updateProgress(it) },
+                                    onLog = { appendLog(it) },
+                                    isCancelled = { isCancelled }
+                                )
+                            } else {
+                                appendLog("⚠️ يرجى اختيار ملف السوفت وير أولاً!")
+                            }
+                        }
+
+                        // 2. عملية السحب (DUMP)
+                        selectedOp.contains("سحب") || selectedOp.contains("Dump") -> {
+                            if (dumpSaveUri != null) {
+                                contentResolver.openOutputStream(dumpSaveUri!!)?.use { outputStream ->
+                                    uartManager.dumpFlash(
+                                        outputStream = outputStream,
+                                        length = length,
+                                        onProgress = { updateProgress(it) },
+                                        onLog = { appendLog(it) },
+                                        isCancelled = { isCancelled }
+                                    )
+                                }
+                            } else {
+                                appendLog("⚠️ يرجى تحديد مسار الحفظ (DUMP PATH) أولاً!")
+                            }
+                        }
+
+                        // 3. عملية المسح (ERASE)
+                        selectedOp.contains("مسح") || selectedOp.contains("Erase") -> {
+                            uartManager.eraseFlash(
+                                startAddress = startAddr,
+                                length = length,
+                                onLog = { appendLog(it) }
+                            )
+                        }
                     }
                 }
-
-                val crcHex = String.format("%08X", crc.value)
-                val sizeInKB = fileSize / 1024
-                withContext(Dispatchers.Main) {
-                    txtFileName.text = "الملف المحدد: $fileName\nحجم الملف: $fileSize بايت ($sizeInKB KB) | CRC32: 0x$crcHex"
-                    logConsole("📁 تم اختيار الملف: $fileName\n📊 الحجم: $fileSize بايت | CRC32: 0x$crcHex")
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    txtFileName.text = "فشل في قراءة الملف"
-                    logConsole("❌ خطأ في قراءة الملف: ${e.message}")
-                }
             }
+
+            btnStart.isEnabled = true
+            btnStop.isEnabled = false
+            uartManager.disconnect()
         }
     }
 
-    private fun setupListeners() {
-        btnSelectFile.setOnClickListener {
-            filePickerLauncher.launch("*/*")
-        }
+    private fun calculateCRC32(data: ByteArray): Long {
+        val crc = CRC32()
+        crc.update(data)
+        return crc.value
+    }
 
-        btnSelectDumpPath.setOnClickListener {
-            Toast.makeText(this, "تم اختيار مسار الحفظ الافتراضي", Toast.LENGTH_SHORT).show()
-            logConsole("📂 تم اختيار مسار الحفظ الافتراضي للـ Dump")
-        }
-
-        btnStartFlashing.setOnClickListener {
-            val selectedOp = spinnerOperateType.selectedItem.toString()
-            if (selectedOp.contains("Write") && selectedFileUri == null) {
-                Toast.makeText(this, "يرجى اختيار ملف السوفت وير أولاً", Toast.LENGTH_SHORT).show()
-                logConsole("❌ يرجى اختيار ملف السوفت وير أولاً.")
-                return@setOnClickListener
-            }
-            startProcess()
-        }
-
-        btnStop.setOnClickListener {
-            logConsole("⏹ تم إيقاف العملية بواسطة المستخدم.")
-            txtStatus.text = "الحالة: تم الإيقاف"
-            btnStartFlashing.isEnabled = true
+    private fun loadAssetsFile(fileName: String): ByteArray? {
+        return try {
+            val inputStream: InputStream = assets.open(fileName)
+            val bytes = inputStream.readBytes()
+            inputStream.close()
+            bytes
+        } catch (e: Exception) {
+            appendLog("⚠️ تعذر تحميل ملف التهيئة $fileName، سيتم تخطي مرحلة الحقن.")
+            ByteArray(0)
         }
     }
 
-    private fun getFileNameFromUri(uri: Uri): String {
-        var name = "flashfile.bin"
-        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (cursor.moveToFirst() && nameIndex != -1) {
-                name = cursor.getString(nameIndex)
-            }
-        }
-        return name
+    private fun updateProgress(percent: Int) {
+        progressBar.progress = percent
+        txtStatus.text = "الحالة: جاري التنفيذ... $percent%"
     }
 
-    private fun startProcess() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.Main) {
-                btnStartFlashing.isEnabled = false
-                progressBar.progress = 0
-                val chip = spinnerChipType.selectedItem.toString()
-                val op = spinnerOperateType.selectedItem.toString()
-                val parity = spinnerParity.selectedItem.toString()
-                txtStatus.text = "الحالة: جاري تنفيذ $op للمعالج $chip..."
-                logConsole("🚀 بدء عملية $op للمعالج $chip (Parity: $parity)...")
-            }
-
-            for (i in 1..100) {
-                delay(40)
-                withContext(Dispatchers.Main) {
-                    progressBar.progress = i
-                }
-            }
-
-            withContext(Dispatchers.Main) {
-                txtStatus.text = "الحالة: اكتملت العملية بنجاح!"
-                logConsole("✅ اكتملت العملية بنجاح.")
-                btnStartFlashing.isEnabled = true
-            }
-        }
-    }
-
-    private fun logConsole(message: String) {
+    private fun appendLog(message: String) {
         runOnUiThread {
             txtConsoleLog.append("\n$message")
-            scrollLog.post {
-                scrollLog.fullScroll(View.FOCUS_DOWN)
-            }
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        try {
-            unregisterReceiver(usbReceiver)
-        } catch (_: Exception) {}
-    }
+    private fun String.toIntOrDefault(default: Int): Int = toIntOrNull() ?: default
+    private fun String.toLongOrDefault(radix: Int, default: Long): Long = toLongOrNull(radix) ?: default
 }
