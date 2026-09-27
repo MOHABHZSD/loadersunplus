@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.sunplusloader'
+    namespace 'com.sunplus.loader'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.sunplusloader"
+        applicationId "com.sunplus.loader"
         minSdk 21
         targetSdk 34
         versionCode 1
