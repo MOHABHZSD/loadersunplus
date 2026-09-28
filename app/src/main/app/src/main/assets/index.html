@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لودر صن بلس (Sunplus Loader)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: #1c1c1c;
+            color: #ffffff;
+            padding: 12px;
+            max-width: 500px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Title */
+        .app-title {
+            text-align: center;
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 2px;
+        }
+
+        /* Grid Structure */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 14px;
+            align-items: center;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .field-label {
+            font-size: 0.78rem;
+            color: #cccccc;
+            text-align: right;
+        }
+
+        /* Custom Select Control */
+        .select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .select-wrapper::before {
+            content: "▼";
+            font-size: 0.65rem;
+            color: #ffffff;
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .select-input {
+            width: 100%;
+            background-color: #2b2b2b;
+            color: #ffffff;
+            border: 1px solid #444444;
+            border-radius: 4px;
+            padding: 6px 10px 6px 25px;
+            font-size: 0.85rem;
+            text-align: center;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        /* Text Input Control */
+        .text-input {
+            width: 100%;
+            background-color: transparent;
+            color: #ffffff;
+            border: none;
+            border-bottom: 1px solid #666666;
+            padding: 4px 0;
+            font-size: 0.85rem;
+            text-align: center;
+            outline: none;
+        }
+
+        .text-input:focus {
+            border-bottom-color: #2196f3;
+        }
+
+        /* File Action Buttons */
+        .btn-file {
+            width: 100%;
+            background-color: #383838;
+            color: #ffffff;
+            border: 1px solid #4a4a4a;
+            border-radius: 4px;
+            padding: 9px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-file:active {
+            background-color: #4a4a4a;
+        }
+
+        /* File Info Banner */
+        .file-details {
+            text-align: center;
+            font-size: 0.72rem;
+            color: #999999;
+            line-height: 1.4;
+        }
+
+        /* Control Buttons (Red & Green) */
+        .control-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-start {
+            background-color: #2e7d32;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 9px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-stop {
+            background-color: #d32f2f;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 9px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Status & Log Header */
+        .status-header {
+            font-size: 0.78rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .status-header .status-line {
+            color: #ffffff;
+        }
+
+        .status-header .log-label {
+            color: #cccccc;
+        }
+
+        /* Console Box Container */
+        .console-container {
+            background-color: #080808;
+            border: 1px solid #2a2a2a;
+            height: 160px;
+            border-radius: 3px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 0.73rem;
+            color: #4caf50;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-title">لودر صن بلس (Sunplus Loader)</div>
+
+    <div class="form-grid">
+        <!-- منفذ USB / COM -->
+        <div class="field-group full-width">
+            <div class="field-label" style="text-align: right;">منفذ USB / COM: USB Serial UART</div>
+        </div>
+
+        <!-- معدل السرعة والتكافؤ -->
+        <div class="field-group">
+            <div class="field-label">(Parity) التكافؤ</div>
+            <div class="select-wrapper">
+                <select class="select-input" id="parity">
+                    <option value="None">None</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">(Baud Rate) معدل السرعة</div>
+            <div class="select-wrapper">
+                <select class="select-input" id="baudRate">
+                    <option value="115200">115200</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- نوع الرام ونوع المعالج -->
+        <div class="field-group">
+            <div class="field-label">(DDR Type) نوع الرام</div>
+            <div class="select-wrapper">
+                <select class="select-input" id="ddrType">
+                    <option value="DDR2 (512)">DDR2 (512)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">(Chip Type) نوع المعالج</div>
+            <div class="select-wrapper">
+                <select class="select-input" id="chipType">
+                    <option value="1506TV / 1506F">1506TV / 1506F</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- نوع العملية -->
+        <div class="field-group full-width">
+            <div class="field-label" style="text-align: right;">نوع العملية: كتابة (Write)</div>
+        </div>
+
+        <!-- نوع التخزين والقسم -->
+        <div class="field-group">
+            <div class="field-label">(Storage) نوع التخزين</div>
+            <div class="select-wrapper">
+                <select class="select-input" id="storage">
+                    <option value="SPI Flash">SPI Flash</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">(Section) القسم</div>
+            <div class="select-wrapper">
+                <select class="select-input" id="section">
+                    <option value="(Full Flash) الكل">(Full Flash) الكل</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- عنوان البداية وطول الملف -->
+        <div class="field-group">
+            <div class="field-label">(Start) عنوان البداية</div>
+            <input type="text" class="text-input" id="startInput" value="0x000000">
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">(Length) طول الملف</div>
+            <input type="text" class="text-input" id="lengthInput" value="0x400000">
+        </div>
+    </div>
+
+    <!-- أزرار اختيار الملفات -->
+    <button class="btn-file" id="btnSelectSoftware">اختيار ملف السوفت وير</button>
+    <button class="btn-file" id="btnSelectDump">تحديد مسار الحفظ (DUMP PATH)</button>
+
+    <!-- معلومات الملف -->
+    <div class="file-details">
+        <div id="fileNameInfo">الملف المحدد: rom.bin</div>
+        <div id="fileSizeInfo">حجم الملف: 4194304 بايت | CRC32: 0x61B4C8</div>
+    </div>
+
+    <!-- أزرار الإلغاء والبدء -->
+    <div class="control-btns">
+        <button class="btn-stop" id="btnStop">إلغاء (STOP)</button>
+        <button class="btn-start" id="btnStart">بدء العملية</button>
+    </div>
+
+    <!-- سجل العمليات وحالة التشغيل -->
+    <div class="status-header">
+        <div class="status-line" id="statusLine">الحالة: بانتظار بدء العملية...</div>
+        <div class="log-label">سجل العمليات (Console Log):</div>
+    </div>
+
+    <div class="console-container" id="consoleLog">تم اختيار الملف: rom.bin | الحجم: 4194304
+تم اختيار مسار الحفظ لـ Dump بنجاح.</div>
+
+    <script>
+        function logMessage(text) {
+            const consoleBox = document.getElementById('consoleLog');
+            consoleBox.innerHTML += '\n' + text;
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        document.getElementById('btnStart').addEventListener('click', () => {
+            document.getElementById('statusLine').innerText = 'الحالة: جاري تنفييذ العملية...';
+            logMessage('بدء العملية عبر المنفذ المحدد...');
+        });
+
+        document.getElementById('btnStop').addEventListener('click', () => {
+            document.getElementById('statusLine').innerText = 'الحالة: تم إيقاف العملية.';
+            logMessage('تم إلغاء العملية بواسطة المستخدم.');
+        });
+    </script>
+</body>
+                  </html>
