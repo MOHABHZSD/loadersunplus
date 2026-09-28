@@ -256,7 +256,7 @@
             android:textSize="12sp"
             android:paddingBottom="8dp"/>
 
-        <!-- صف أزرار التحكم: بدء العملية يمين، إلغاء/إيقاف يسار -->
+        <!-- صف أزرار التحكم -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -299,7 +299,7 @@
             android:textColor="#CCCCCC"
             android:textSize="12sp"/>
 
-        <!-- سجل العمليات مع دعم التمرير الداخلي للأسفل -->
+        <!-- سجل العمليات -->
         <ScrollView
             android:id="@+id/logScrollView"
             android:layout_width="match_parent"
