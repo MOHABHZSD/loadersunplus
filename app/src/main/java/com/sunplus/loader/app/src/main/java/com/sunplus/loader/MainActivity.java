@@ -193,4 +193,4 @@ public class MainActivity extends AppCompatActivity {
         stopService(serviceIntent);
         appendLog("تم إيقاف العملية والخدمة بنجاح.");
     }
-            }
+    }
