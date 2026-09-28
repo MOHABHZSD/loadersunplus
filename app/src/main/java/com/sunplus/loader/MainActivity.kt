@@ -1,68 +1,70 @@
 package com.sunplus.loader
 
-import android.content.Context
-import android.hardware.usb.UsbDeviceConnection
-import android.hardware.usb.UsbManager
 import android.os.Bundle
-import android.widget.Button
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.hoho.android.usbserial.driver.UsbSerialPort
-import com.hoho.android.usbserial.driver.UsbSerialProber
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var btnConnect: Button
+    private lateinit var spinnerDevices: Spinner
+    private lateinit var spinnerBaudRate: Spinner
+    private lateinit var spinnerParity: Spinner
+    private lateinit var spinnerDdrType: Spinner
+    private lateinit var spinnerChipType: Spinner
+    private lateinit var spinnerOperation: Spinner
+    private lateinit var spinnerStorage: Spinner
+    private lateinit var spinnerSection: Spinner
+    
+    private lateinit var etStartAddress: EditText
+    private lateinit var etLength: EditText
+    
+    private lateinit var btnSelectFile: Button
+    private lateinit var btnDumpPath: Button
+    private lateinit var btnStart: Button
+    private lateinit var btnStop: Button
+    
+    private lateinit var tvFileInfo: TextView
     private lateinit var tvStatus: TextView
+    private lateinit var tvConsoleLog: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        btnConnect = findViewById(R.id.btnConnect)
+        spinnerDevices = findViewById(R.id.spinnerDevices)
+        spinnerBaudRate = findViewById(R.id.spinnerBaudRate)
+        spinnerParity = findViewById(R.id.spinnerParity)
+        spinnerDdrType = findViewById(R.id.spinnerDdrType)
+        spinnerChipType = findViewById(R.id.spinnerChipType)
+        spinnerOperation = findViewById(R.id.spinnerOperation)
+        spinnerStorage = findViewById(R.id.spinnerStorage)
+        spinnerSection = findViewById(R.id.spinnerSection)
+        
+        etStartAddress = findViewById(R.id.etStartAddress)
+        etLength = findViewById(R.id.etLength)
+        
+        btnSelectFile = findViewById(R.id.btnSelectFile)
+        btnDumpPath = findViewById(R.id.btnDumpPath)
+        btnStart = findViewById(R.id.btnStart)
+        btnStop = findViewById(R.id.btnStop)
+        
+        tvFileInfo = findViewById(R.id.tvFileInfo)
         tvStatus = findViewById(R.id.tvStatus)
+        tvConsoleLog = findViewById(R.id.tvConsoleLog)
 
-        btnConnect.setOnClickListener {
-            connectToUsb()
+        btnStart.setOnClickListener {
+            appendLog("🟢 تم النقر على بدء العملية...")
         }
+
+        btnStop.setOnClickListener {
+            appendLog("🔴 تم إيقاف العملية.")
+        }
+
+        appendLog("🟢 تم تهيئة الواجهة الاحترافية بنجاح.")
     }
 
-    private fun connectToUsb() {
-        val manager = getSystemService(Context.USB_SERVICE) as UsbManager
-        val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager)
-
-        if (availableDrivers.isEmpty()) {
-            tvStatus.text = "لم يتم العثور على أجهزة USB"
-            return
-        }
-
-        val driver = availableDrivers[0]
-        val connection: UsbDeviceConnection? = manager.openDevice(driver.device)
-
-        if (connection == null) {
-            tvStatus.text = "تعذر فتح الاتصال بالجهاز"
-            return
-        }
-
-        val port: UsbSerialPort = driver.ports[0]
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                port.open(connection)
-                port.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
-
-                withContext(Dispatchers.Main) {
-                    tvStatus.text = "تم الاتصال بنجاح!"
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    tvStatus.text = "خطأ في الاتصال: ${e.localizedMessage}"
-                }
-            }
-        }
+    private fun appendLog(message: String) {
+        val currentText = tvConsoleLog.text.toString()
+        tvConsoleLog.text = "$currentText\n$message"
     }
 }
