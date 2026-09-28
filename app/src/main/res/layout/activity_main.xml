@@ -40,7 +40,7 @@
                 android:layout_height="45dp" />
         </LinearLayout>
 
-        <!-- صف: معدل السرعة (Baud Rate) & التكافؤ (Parity) -->
+        <!-- صف: معدل السرعة & التكافؤ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -84,7 +84,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- صف: نوع الرام (DDR Type) & نوع المعالج (Chip Type) -->
+        <!-- صف: نوع الرام & نوع المعالج -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -128,7 +128,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- نوع العملية (Operation) -->
+        <!-- نوع العملية -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -146,7 +146,7 @@
                 android:layout_height="45dp" />
         </LinearLayout>
 
-        <!-- صف: نوع التخزين (Storage) & القسم (Section) -->
+        <!-- صف: نوع التخزين & القسم -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -190,7 +190,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- صف: عنوان البداية (Start) & طول الملف (Length) -->
+        <!-- صف: عنوان البداية & طول الملف -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -299,7 +299,7 @@
             android:textSize="12sp"
             android:layout_marginBottom="8dp" />
 
-        <!-- سجل العمليات (Console Log) -->
+        <!-- سجل العمليات -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
