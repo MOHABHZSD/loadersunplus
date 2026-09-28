@@ -344,4 +344,4 @@ public class MainActivity extends AppCompatActivity {
         appendLog("تم إيقاف العملية وإغلاق المنفذ بنجاح.", false);
         updateProgress(0);
     }
-    }
+            }
