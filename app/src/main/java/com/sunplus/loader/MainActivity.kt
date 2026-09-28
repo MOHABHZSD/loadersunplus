@@ -95,16 +95,14 @@ class MainActivity : AppCompatActivity() {
             appendLog("⏹️ تم إيقاف العملية بواسطة المستخدم.")
             tvStatus.text = "الحالة: متوقف"
         }
-
-        appendLog("🔍 لم يتم العثور على وصلة تحديث.")
     }
 
     private fun setupSpinners() {
         spinnerDevices.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("لا يوجد جهاز متصل"))
         spinnerBaudRate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("115200", "57600", "38400", "9600"))
         spinnerParity.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("None", "Odd", "Even"))
-        spinnerDdrType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("DDR3 (2G)", "DDR2", "DDR1"))
-        spinnerChipType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("1506TV / 1506F", "1507G", "1503G"))
+        spinnerDdrType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("DDR3 (2G)", "DDR2", "DDR1", "SDRAM"))
+        spinnerChipType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("1506TV / 1506F", "1507G", "1503G", "1512", "1510"))
         spinnerOperation.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("كتابة (Write)", "قراءة (Read / Dump)", "مسح (Erase)"))
         spinnerStorage.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("SPI Flash", "NAND Flash"))
         spinnerSection.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("الكل (Full Flash)", "Bootloader", "MainCode", "User DB"))
