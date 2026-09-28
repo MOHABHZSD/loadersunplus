@@ -1,47 +1,314 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="12dp"
-    android:background="#121212">
+    android:background="#212121"
+    android:padding="12dp">
 
-    <TextView
-        android:id="@+id/tvStatus"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="الحالة: بانتظار بدء العملية..."
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginTop="8dp"/>
+        android:orientation="vertical">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="سجل العمليات (Console Log):"
-        android:textColor="#CCCCCC"
-        android:textSize="12sp"
-        android:layout_marginTop="4dp"/>
+        <!-- عنوان التطبيق -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="لودر صن بلس (Sunplus Loader)"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:paddingBottom="10dp"/>
 
-    <ScrollView
-        android:id="@+id/logScrollView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#000000"
-        android:fillViewport="true"
-        android:padding="8dp"
-        android:layout_marginTop="4dp">
+        <!-- صف منفذ USB -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="8dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=":منفذ USB / COM"
+                android:textColor="#CCCCCC"/>
+            <Spinner
+                android:id="@+id/spinnerDevices"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:backgroundTint="#FFFFFF"/>
+        </LinearLayout>
 
+        <!-- صف معدل السرعة والتكافؤ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="معدل السرعة (Baud Rate)"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"/>
+                <Spinner
+                    android:id="@+id/spinnerBaudRate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="التكافؤ (Parity)"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"/>
+                <Spinner
+                    android:id="@+id/spinnerParity"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- صف نوع المعالج ونوع الرام -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="نوع المعالج (Chip Type)"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"/>
+                <Spinner
+                    android:id="@+id/spinnerChipType"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="نوع الرام (DDR Type)"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"/>
+                <Spinner
+                    android:id="@+id/spinnerDdrType"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- صف نوع العملية (بحجم طبيعي غير متمدد) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="8dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=":نوع العملية"
+                android:textColor="#CCCCCC"/>
+            <Spinner
+                android:id="@+id/spinnerOperation"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:backgroundTint="#FFFFFF"/>
+        </LinearLayout>
+
+        <!-- صف القسم ونوع التخزين -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="القسم (Section)"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"/>
+                <Spinner
+                    android:id="@+id/spinnerSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="نوع التخزين (Storage)"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"/>
+                <Spinner
+                    android:id="@+id/spinnerStorage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- صف الحقول: طول الملف يمين، عنوان البداية يسار -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="طول الملف (Length)"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"/>
+                <EditText
+                    android:id="@+id/etLength"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="0x400000"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="عنوان البداية (Start)"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"/>
+                <EditText
+                    android:id="@+id/etStartAddress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="0x000000"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- أزرار اختيار الملف والمسار -->
+        <Button
+            android:id="@+id/btnSelectFile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="اختيار ملف السوفت وير"
+            android:backgroundTint="#424242"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="6dp"/>
+
+        <Button
+            android:id="@+id/btnDumpPath"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="تحديد مسار الحفظ (DUMP PATH)"
+            android:backgroundTint="#424242"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="6dp"/>
+
+        <!-- معلومات الملف -->
+        <TextView
+            android:id="@+id/tvFileInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="الملف المحدد: none\nحجم الملف: 0 بايت | CRC32: 0x00000000"
+            android:textColor="#AAAAAA"
+            android:textSize="12sp"
+            android:paddingBottom="8dp"/>
+
+        <!-- صف أزرار التحكم: بدء العملية يمين، إلغاء/إيقاف يسار -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+            <Button
+                android:id="@+id/btnStart"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="بدء العملية"
+                android:backgroundTint="#2E7D32"
+                android:textColor="#FFFFFF"
+                android:layout_marginEnd="4dp"/>
+
+            <Button
+                android:id="@+id/btnStop"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="إلغاء (STOP)"
+                android:backgroundTint="#C62828"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
+        <!-- حالة العملية -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="الحالة: بانتظار بدء العملية..."
+            android:textColor="#FFFFFF"
+            android:paddingBottom="6dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="سجل العمليات (Console Log):"
+            android:textColor="#CCCCCC"
+            android:textSize="12sp"/>
+
+        <!-- سجل العمليات -->
         <TextView
             android:id="@+id/tvConsoleLog"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#00FF00"
+            android:layout_height="120dp"
+            android:background="#121212"
+            android:textColor="#4CAF50"
             android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:textIsSelectable="true"/>
-    </ScrollView>
+            android:padding="8dp"
+            android:scrollbars="vertical"/>
 
-</LinearLayout>
+    </LinearLayout>
+</ScrollView>
