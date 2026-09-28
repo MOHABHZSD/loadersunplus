@@ -85,6 +85,72 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- إعدادات الاتصال المتقدمة: Data Bits & Stop Bits & Flow Control -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+            
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingEnd="2dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Flow Control"
+                    android:textColor="#CCCCCC"
+                    android:textSize="11sp"/>
+                <Spinner
+                    android:id="@+id/spinnerFlowControl"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:entries="@array/flow_control_options"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Stop Bits"
+                    android:textColor="#CCCCCC"
+                    android:textSize="11sp"/>
+                <Spinner
+                    android:id="@+id/spinnerStopBits"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:entries="@array/stop_bits_options"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingStart="2dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Data Bits"
+                    android:textColor="#CCCCCC"
+                    android:textSize="11sp"/>
+                <Spinner
+                    android:id="@+id/spinnerDataBits"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:entries="@array/data_bits_options"/>
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- نوع المعالج ونوع الرام -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -275,7 +341,7 @@
             android:textSize="12sp"
             android:paddingBottom="8dp"/>
 
-        <!-- أزرار التحكم: إلغاء يسار، بدء يمين -->
+        <!-- أزرار التحكم -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
