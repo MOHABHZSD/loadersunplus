@@ -19,6 +19,25 @@
         <item>Odd</item>
     </string-array>
 
+    <string-array name="data_bits_options">
+        <item>8</item>
+        <item>7</item>
+        <item>6</item>
+        <item>5</item>
+    </string-array>
+
+    <string-array name="stop_bits_options">
+        <item>1</item>
+        <item>1.5</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="flow_control_options">
+        <item>None</item>
+        <item>RTS/CTS</item>
+        <item>XON/XOFF</item>
+    </string-array>
+
     <string-array name="chip_type_options">
         <item>1506TV / 1506F</item>
         <item>1506G / 1507G</item>
