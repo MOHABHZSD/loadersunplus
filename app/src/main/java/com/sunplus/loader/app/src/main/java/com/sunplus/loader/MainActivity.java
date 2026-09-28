@@ -26,7 +26,8 @@ import java.util.zip.CRC32;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Spinner spinnerDevices, spinnerBaudRate, spinnerParity, spinnerChipType, spinnerDdrType, spinnerOperation, spinnerSection, spinnerStorage;
+    private Spinner spinnerDevices, spinnerBaudRate, spinnerParity, spinnerDataBits, spinnerStopBits, spinnerFlowControl;
+    private Spinner spinnerChipType, spinnerDdrType, spinnerOperation, spinnerSection, spinnerStorage;
     private EditText etLength, etStartAddress;
     private Button btnSelectFile, btnDumpPath, btnStart, btnStop;
     private TextView tvFileInfo, tvStatus, tvConsoleLog;
@@ -68,6 +69,10 @@ public class MainActivity extends AppCompatActivity {
         spinnerDevices = findViewById(R.id.spinnerDevices);
         spinnerBaudRate = findViewById(R.id.spinnerBaudRate);
         spinnerParity = findViewById(R.id.spinnerParity);
+        spinnerDataBits = findViewById(R.id.spinnerDataBits);
+        spinnerStopBits = findViewById(R.id.spinnerStopBits);
+        spinnerFlowControl = findViewById(R.id.spinnerFlowControl);
+
         spinnerChipType = findViewById(R.id.spinnerChipType);
         spinnerDdrType = findViewById(R.id.spinnerDdrType);
         spinnerOperation = findViewById(R.id.spinnerOperation);
@@ -179,13 +184,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startFlashingProcess() {
+        String baudRate = spinnerBaudRate.getSelectedItem() != null ? spinnerBaudRate.getSelectedItem().toString() : "115200";
+        String dataBits = spinnerDataBits.getSelectedItem() != null ? spinnerDataBits.getSelectedItem().toString() : "8";
+        String stopBits = spinnerStopBits.getSelectedItem() != null ? spinnerStopBits.getSelectedItem().toString() : "1";
+        String flowControl = spinnerFlowControl.getSelectedItem() != null ? spinnerFlowControl.getSelectedItem().toString() : "None";
+
         Intent serviceIntent = new Intent(this, FlashingService.class);
+        serviceIntent.putExtra("BAUD_RATE", baudRate);
+        serviceIntent.putExtra("DATA_BITS", dataBits);
+        serviceIntent.putExtra("STOP_BITS", stopBits);
+        serviceIntent.putExtra("FLOW_CONTROL", flowControl);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
         } else {
             startService(serviceIntent);
         }
-        appendLog("تم بدء العملية بنجاح. حماية الخلفية مفعّلة.");
+        appendLog("تم بدء العملية بإعدادات الاتصال (" + baudRate + " baud, " + dataBits + "N" + stopBits + ", Flow: " + flowControl + ").");
     }
 
     public void stopFlashingProcess() {
@@ -193,4 +208,4 @@ public class MainActivity extends AppCompatActivity {
         stopService(serviceIntent);
         appendLog("تم إيقاف العملية والخدمة بنجاح.");
     }
-    }
+                                      }
