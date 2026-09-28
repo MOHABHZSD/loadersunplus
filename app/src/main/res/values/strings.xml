@@ -1,4 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Sunplus Loader</string>
+
+    <string-array name="baud_rate_options">
+        <item>115200</item>
+        <item>9600</item>
+        <item>19200</item>
+        <item>38400</item>
+        <item>57600</item>
+        <item>230400</item>
+        <item>460800</item>
+        <item>921600</item>
+    </string-array>
+
+    <string-array name="parity_options">
+        <item>None</item>
+        <item>Even</item>
+        <item>Odd</item>
+    </string-array>
+
+    <string-array name="chip_type_options">
+        <item>1506TV / 1506F</item>
+        <item>1506G / 1507G</item>
+        <item>1506A / 1506HV</item>
+        <item>1506T / 1506LV</item>
+        <item>1509G / 1509H</item>
+        <item>1503 / 1502</item>
+        <item>Sunplus 1505</item>
+    </string-array>
+
+    <string-array name="ddr_type_options">
+        <item>DDR2 (512)</item>
+        <item>DDR3 (1G)</item>
+        <item>DDR3 (2G)</item>
+        <item>Built-in DDR</item>
+    </string-array>
+
+    <string-array name="operation_options">
+        <item>كتابة (Write)</item>
+        <item>قراءة / سحب (Read / Dump)</item>
+        <item>مسح (Erase)</item>
+    </string-array>
+
+    <string-array name="section_options">
+        <item>الكل (Full Flash)</item>
+        <item>Bootloader</item>
+        <item>User Data</item>
+    </string-array>
+
+    <string-array name="storage_options">
+        <item>SPI Flash</item>
+        <item>NAND Flash</item>
+    </string-array>
 </resources>
