@@ -7,6 +7,8 @@ import android.os.Bundle
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import java.io.InputStream
+import java.util.zip.CRC32
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,7 +33,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var tvConsoleLog: TextView
 
-    // مُلقط اختيار ملف السوفت وير (.bin)
     private val filePickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
@@ -40,13 +41,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // مُلقط تحديد مجلد حفظ الدامب (Dump Path)
     private val folderPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
-                // منح صلاحيات المستمرة للمجلد المحدد
                 contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                appendLog("📁 تم تحديد مسار الحفظ بنجاح: $uri")
+                appendLog("📁 تم تحديد مسار الحفظ بنجاح")
                 tvStatus.text = "الحالة: تم تحديد مسار الحفظ"
             }
         }
@@ -56,7 +55,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // ربط عناصر الواجهة
         spinnerDevices = findViewById(R.id.spinnerDevices)
         spinnerBaudRate = findViewById(R.id.spinnerBaudRate)
         spinnerParity = findViewById(R.id.spinnerParity)
@@ -78,10 +76,8 @@ class MainActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         tvConsoleLog = findViewById(R.id.tvConsoleLog)
 
-        // إعداد وتعبئة القوائم المنسدلة بالخيارات الاحترافية المطابقة للكمبيوتر
         setupSpinners()
 
-        // أحداث الأزرار
         btnSelectFile.setOnClickListener {
             openFilePicker()
         }
@@ -100,47 +96,24 @@ class MainActivity : AppCompatActivity() {
             tvStatus.text = "الحالة: متوقف"
         }
 
-        appendLog("🟢 تم تهيئة اللودر والواجهة الاحترافية بنجاح.")
+        appendLog("🔍 لم يتم العثور على وصلة تحديث.")
     }
 
     private fun setupSpinners() {
-        // قائمة المنافذ الوهمية أو المتاحة
-        val devicesAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("لا يوجد جهاز متصل"))
-        spinnerDevices.adapter = devicesAdapter
-
-        // معدلات السرعة (Baud Rate)
-        val baudAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("115200", "57600", "38400", "9600"))
-        spinnerBaudRate.adapter = baudAdapter
-
-        // التكافؤ (Parity)
-        val parityAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("None", "Odd", "Even"))
-        spinnerParity.adapter = parityAdapter
-
-        // نوع الرام (DDR Type)
-        val ddrAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("DDR3 (2G)", "DDR2", "DDR1"))
-        spinnerDdrType.adapter = ddrAdapter
-
-        // نوع المعالج (Chip Type)
-        val chipAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("1506TV / 1506F", "1507G", "1503G", "VSاصلية"))
-        spinnerChipType.adapter = chipAdapter
-
-        // نوع العملية (Operation)
-        val opAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("كتابة (Write)", "قراءة (Read / Dump)", "مسح (Erase)"))
-        spinnerOperation.adapter = opAdapter
-
-        // نوع التخزين (Storage)
-        val storageAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("SPI Flash", "NAND Flash"))
-        spinnerStorage.adapter = storageAdapter
-
-        // القسم (Section)
-        val sectionAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("الكل (Full Flash)", "Bootloader", "MainCode", "User DB"))
-        spinnerSection.adapter = sectionAdapter
+        spinnerDevices.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("لا يوجد جهاز متصل"))
+        spinnerBaudRate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("115200", "57600", "38400", "9600"))
+        spinnerParity.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("None", "Odd", "Even"))
+        spinnerDdrType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("DDR3 (2G)", "DDR2", "DDR1"))
+        spinnerChipType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("1506TV / 1506F", "1507G", "1503G"))
+        spinnerOperation.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("كتابة (Write)", "قراءة (Read / Dump)", "مسح (Erase)"))
+        spinnerStorage.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("SPI Flash", "NAND Flash"))
+        spinnerSection.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("الكل (Full Flash)", "Bootloader", "MainCode", "User DB"))
     }
 
     private fun openFilePicker() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*" // أو تحديد ملفات .bin
+            type = "*/*"
         }
         filePickerLauncher.launch(intent)
     }
@@ -152,22 +125,35 @@ class MainActivity : AppCompatActivity() {
 
     private fun processSelectedFile(uri: Uri) {
         val fileName = uri.lastPathSegment ?: "rom.bin"
-        // حساب حجم الملف عبر ContentResolver
-        val cursor = contentResolver.query(uri, null, null, null, null)
         var fileSize = 0L
-        cursor?.use {
-            val sizeIndex = it.getColumnIndex(android.provider.OpenableColumns.SIZE)
-            if (it.moveToFirst() && sizeIndex != -1) {
-                fileSize = it.getLong(sizeIndex)
+        var crcValue = "0x00000000"
+
+        try {
+            val inputStream: InputStream? = contentResolver.openInputStream(uri)
+            inputStream?.use { stream ->
+                val bytes = stream.readBytes()
+                fileSize = bytes.size.toLong()
+                
+                val crc = CRC32()
+                crc.update(bytes)
+                crcValue = String.format("0x%08X", crc.value)
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
-        tvFileInfo.text = "الملف المحدد: $fileName\nحجم الملف: $fileSize بايت"
-        appendLog("📂 تم اختيار الملف: $fileName (الحجم: $fileSize بايت)")
+        val sizeInKB = fileSize / 1024
+        tvFileInfo.text = "الملف المحدد: $fileName\nحجم الملف: $fileSize بايت ($sizeInKB KB) | CRC32: $crcValue"
+        appendLog("📁 تم اختيار الملف: $fileName")
+        appendLog("📊 الحجم: $fileSize بايت (KB $sizeInKB) | CRC32: $crcValue")
     }
 
     private fun appendLog(message: String) {
         val currentText = tvConsoleLog.text.toString()
-        tvConsoleLog.text = "$currentText\n$message"
+        if (currentText.isEmpty()) {
+            tvConsoleLog.text = message
+        } else {
+            tvConsoleLog.text = "$currentText\n$message"
+        }
     }
 }
