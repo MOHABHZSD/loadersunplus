@@ -172,10 +172,29 @@ public class MainActivity extends AppCompatActivity {
             InputStream inputStream = getContentResolver().openInputStream(uri);
             byte[] buffer = new byte[8192];
             int bytesRead;
+
+            byte[] headerBuffer = new byte[0x10008];
+            int headerBytesRead = 0;
+
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 crc.update(buffer, 0, bytesRead);
+
+                if (headerBytesRead < headerBuffer.length) {
+                    int copyLength = Math.min(bytesRead, headerBuffer.length - headerBytesRead);
+                    System.arraycopy(buffer, 0, headerBuffer, headerBytesRead, copyLength);
+                    headerBytesRead += copyLength;
+                }
             }
             inputStream.close();
+
+            String extractedCustomerId = parseCustomerIdFromHeader(headerBuffer, headerBytesRead);
+            if (extractedCustomerId != null) {
+                etCustomerId.setText(extractedCustomerId);
+                appendLog("تم استخراج Customer ID من الملف: " + extractedCustomerId, false);
+            } else {
+                etCustomerId.setText("0x0000");
+                appendLog("لم يتم العثور على Customer ID محدد، القيمة الافتراضية: 0x0000", false);
+            }
 
             String crcString = String.format("0x%08X", crc.getValue());
             String infoText = "الملف المحدد: " + fileName + "\nحجم الملف: " + fileSize + " بايت | CRC32: " + crcString;
@@ -185,6 +204,24 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             appendLog("خطأ أثناء قراءة الملف: " + e.getMessage(), true);
         }
+    }
+
+    private String parseCustomerIdFromHeader(byte[] headerData, int length) {
+        try {
+            if (length >= 0x10004) {
+                int b1 = headerData[0x10000] & 0xFF;
+                int b2 = headerData[0x10001] & 0xFF;
+                int customerId = (b1 << 8) | b2;
+                return String.format("0x%04X", customerId);
+            } else if (length >= 4) {
+                int b1 = headerData[2] & 0xFF;
+                int b2 = headerData[3] & 0xFF;
+                int customerId = (b1 << 8) | b2;
+                return String.format("0x%04X", customerId);
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     public void appendLog(final String message, final boolean isError) {
@@ -283,6 +320,7 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.putExtra("STOP_BITS", stopBits);
         serviceIntent.putExtra("FLOW_CONTROL", flowControl);
         serviceIntent.putExtra("OPERATION_TYPE", operationType.name());
+        serviceIntent.putExtra("CUSTOMER_ID", etCustomerId.getText().toString());
 
         if (selectedFileUri != null) {
             serviceIntent.putExtra("FILE_URI", selectedFileUri.toString());
@@ -306,4 +344,4 @@ public class MainActivity extends AppCompatActivity {
         appendLog("تم إيقاف العملية وإغلاق المنفذ بنجاح.", false);
         updateProgress(0);
     }
-            }
+    }
