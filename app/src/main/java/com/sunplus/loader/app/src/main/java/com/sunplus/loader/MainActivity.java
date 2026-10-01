@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private Spinner spinnerDevices, spinnerBaudRate, spinnerParity, spinnerDataBits, spinnerStopBits, spinnerFlowControl;
     private Spinner spinnerChipType, spinnerDdrType, spinnerRomType, spinnerOperation, spinnerSection, spinnerStorage;
     private EditText etLength, etStartAddress, etCustomerId;
-    private Button btnSelectFile, btnSelectAssistant, btnDumpPath, btnStart, btnStop;
+    private Button btnSelectFile, btnDumpPath, btnStart, btnStop;
     private TextView tvFileInfo, tvStatus, tvConsoleLog;
     private ScrollView logScrollView;
     private ProgressBar progressBar;
@@ -38,7 +38,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int MAX_LOG_LENGTH = 50000;
     private Uri selectedFileUri = null;
     private Uri dumpPathUri = null;
-    private Uri assistantFileUri = null;
 
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -47,18 +46,6 @@ public class MainActivity extends AppCompatActivity {
                     selectedFileUri = result.getData().getData();
                     if (selectedFileUri != null) {
                         processSelectedFile(selectedFileUri);
-                    }
-                }
-            }
-    );
-
-    private final ActivityResultLauncher<Intent> assistantPickerLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    assistantFileUri = result.getData().getData();
-                    if (assistantFileUri != null) {
-                        appendLog("تم اختيار ملف المساعد بنجاح.");
                     }
                 }
             }
@@ -101,7 +88,6 @@ public class MainActivity extends AppCompatActivity {
         etCustomerId = findViewById(R.id.etCustomerId);
 
         btnSelectFile = findViewById(R.id.btnSelectFile);
-        btnSelectAssistant = findViewById(R.id.btnSelectAssistant);
         btnDumpPath = findViewById(R.id.btnDumpPath);
         btnStart = findViewById(R.id.btnStart);
         btnStop = findViewById(R.id.btnStop);
@@ -116,7 +102,6 @@ public class MainActivity extends AppCompatActivity {
         setupAllSpinners();
 
         btnSelectFile.setOnClickListener(v -> openFilePicker(filePickerLauncher));
-        btnSelectAssistant.setOnClickListener(v -> openFilePicker(assistantPickerLauncher));
         btnDumpPath.setOnClickListener(v -> openFolderPicker());
 
         btnStart.setOnClickListener(v -> startFlashingProcess());
@@ -246,4 +231,4 @@ public class MainActivity extends AppCompatActivity {
         stopService(serviceIntent);
         appendLog("تم إيقاف العملية والخدمة بنجاح.");
     }
-            }
+                                                              }
