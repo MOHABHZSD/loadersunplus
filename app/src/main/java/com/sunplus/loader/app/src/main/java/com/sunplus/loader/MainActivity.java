@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -27,15 +28,17 @@ import java.util.zip.CRC32;
 public class MainActivity extends AppCompatActivity {
 
     private Spinner spinnerDevices, spinnerBaudRate, spinnerParity, spinnerDataBits, spinnerStopBits, spinnerFlowControl;
-    private Spinner spinnerChipType, spinnerDdrType, spinnerOperation, spinnerSection, spinnerStorage;
-    private EditText etLength, etStartAddress;
-    private Button btnSelectFile, btnDumpPath, btnStart, btnStop;
+    private Spinner spinnerChipType, spinnerDdrType, spinnerRomType, spinnerOperation, spinnerSection, spinnerStorage;
+    private EditText etLength, etStartAddress, etCustomerId;
+    private Button btnSelectFile, btnSelectAssistant, btnDumpPath, btnStart, btnStop;
     private TextView tvFileInfo, tvStatus, tvConsoleLog;
     private ScrollView logScrollView;
+    private ProgressBar progressBar;
 
     private static final int MAX_LOG_LENGTH = 50000;
     private Uri selectedFileUri = null;
     private Uri dumpPathUri = null;
+    private Uri assistantFileUri = null;
 
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -44,6 +47,18 @@ public class MainActivity extends AppCompatActivity {
                     selectedFileUri = result.getData().getData();
                     if (selectedFileUri != null) {
                         processSelectedFile(selectedFileUri);
+                    }
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Intent> assistantPickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    assistantFileUri = result.getData().getData();
+                    if (assistantFileUri != null) {
+                        appendLog("تم اختيار ملف المساعد بنجاح.");
                     }
                 }
             }
@@ -66,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // ربط عناصر واجهة المستخدم
         spinnerDevices = findViewById(R.id.spinnerDevices);
         spinnerBaudRate = findViewById(R.id.spinnerBaudRate);
         spinnerParity = findViewById(R.id.spinnerParity);
@@ -75,14 +91,17 @@ public class MainActivity extends AppCompatActivity {
 
         spinnerChipType = findViewById(R.id.spinnerChipType);
         spinnerDdrType = findViewById(R.id.spinnerDdrType);
+        spinnerRomType = findViewById(R.id.spinnerRomType);
         spinnerOperation = findViewById(R.id.spinnerOperation);
         spinnerSection = findViewById(R.id.spinnerSection);
         spinnerStorage = findViewById(R.id.spinnerStorage);
 
         etLength = findViewById(R.id.etLength);
         etStartAddress = findViewById(R.id.etStartAddress);
+        etCustomerId = findViewById(R.id.etCustomerId);
 
         btnSelectFile = findViewById(R.id.btnSelectFile);
+        btnSelectAssistant = findViewById(R.id.btnSelectAssistant);
         btnDumpPath = findViewById(R.id.btnDumpPath);
         btnStart = findViewById(R.id.btnStart);
         btnStop = findViewById(R.id.btnStop);
@@ -91,10 +110,13 @@ public class MainActivity extends AppCompatActivity {
         tvStatus = findViewById(R.id.tvStatus);
         tvConsoleLog = findViewById(R.id.tvConsoleLog);
         logScrollView = findViewById(R.id.logScrollView);
+        progressBar = findViewById(R.id.progressBar);
 
-        initDefaultDeviceSpinner();
+        // تعبئة وتهيئة جميع القوائم المنسدلة برمجيًا
+        setupAllSpinners();
 
-        btnSelectFile.setOnClickListener(v -> openFilePicker());
+        btnSelectFile.setOnClickListener(v -> openFilePicker(filePickerLauncher));
+        btnSelectAssistant.setOnClickListener(v -> openFilePicker(assistantPickerLauncher));
         btnDumpPath.setOnClickListener(v -> openFolderPicker());
 
         btnStart.setOnClickListener(v -> startFlashingProcess());
@@ -103,18 +125,34 @@ public class MainActivity extends AppCompatActivity {
         ignoreBatteryOptimization();
     }
 
-    private void initDefaultDeviceSpinner() {
-        String[] defaultDevices = new String[]{"USB Serial UART"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, defaultDevices);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerDevices.setAdapter(adapter);
+    private void setupAllSpinners() {
+        populateSpinner(spinnerDevices, new String[]{"USB Serial UART", "ttyUSB0", "ttyACM0"});
+        populateSpinner(spinnerBaudRate, new String[]{"115200", "9600", "19200", "38400", "57600", "230400", "460800", "921600"});
+        populateSpinner(spinnerParity, new String[]{"None", "Odd", "Even", "Mark", "Space"});
+        populateSpinner(spinnerDataBits, new String[]{"8", "7", "6", "5"});
+        populateSpinner(spinnerStopBits, new String[]{"1", "1.5", "2"});
+        populateSpinner(spinnerFlowControl, new String[]{"None", "RTS/CTS", "XON/XOFF"});
+
+        populateSpinner(spinnerChipType, new String[]{"Sunplus 1506T", "Sunplus 1506TV", "Sunplus 1506F", "Sunplus 1507G", "Sunplus 1506G", "Sunplus 1505B"});
+        populateSpinner(spinnerDdrType, new String[]{"DDR2", "DDR3", "LPDDR2", "SRAM"});
+        populateSpinner(spinnerRomType, new String[]{"SPI Flash", "NAND Flash", "eMMC"});
+        populateSpinner(spinnerOperation, new String[]{"Write File (شحن/تحديث)", "Read Dump (سحب دامب)", "Erase (مسح الشريحة)", "Verify (تحقق)"});
+        populateSpinner(spinnerSection, new String[]{"All Flash (كامل الشريحة)", "Bootloader", "User Data", "Kernel"});
+        populateSpinner(spinnerStorage, new String[]{"SPI NOR", "SPI NAND", "eMMC/SD"});
     }
 
-    private void openFilePicker() {
+    private void populateSpinner(Spinner spinner, String[] data) {
+        if (spinner == null) return;
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, data);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+    }
+
+    private void openFilePicker(ActivityResultLauncher<Intent> launcher) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        filePickerLauncher.launch(intent);
+        launcher.launch(intent);
     }
 
     private void openFolderPicker() {
@@ -208,4 +246,4 @@ public class MainActivity extends AppCompatActivity {
         stopService(serviceIntent);
         appendLog("تم إيقاف العملية والخدمة بنجاح.");
     }
-    }
+            }
