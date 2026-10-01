@@ -358,15 +358,6 @@
             android:layout_marginBottom="4dp"/>
 
         <Button
-            android:id="@+id/btnSelectAssistant"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="اختيار ملف المساعد (Assistant File)"
-            android:backgroundTint="#333333"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="4dp"/>
-
-        <Button
             android:id="@+id/btnDumpPath"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
