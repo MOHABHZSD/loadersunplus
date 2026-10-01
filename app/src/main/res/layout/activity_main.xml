@@ -61,8 +61,7 @@
                 <Spinner
                     android:id="@+id/spinnerParity"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/parity_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
 
             <LinearLayout
@@ -80,12 +79,11 @@
                 <Spinner
                     android:id="@+id/spinnerBaudRate"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/baud_rate_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
         </LinearLayout>
 
-        <!-- بتات البيانات وبتات الإيقاف والتحكم بالتدفق (مضافة لتفادي أخطاء جافا) -->
+        <!-- بتات البيانات وبتات الإيقاف والتحكم بالتدفق -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -106,8 +104,7 @@
                 <Spinner
                     android:id="@+id/spinnerDataBits"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/data_bits_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
 
             <LinearLayout
@@ -126,8 +123,7 @@
                 <Spinner
                     android:id="@+id/spinnerStopBits"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/stop_bits_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
 
             <LinearLayout
@@ -145,8 +141,7 @@
                 <Spinner
                     android:id="@+id/spinnerFlowControl"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/flow_control_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -171,8 +166,7 @@
                 <Spinner
                     android:id="@+id/spinnerDdrType"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/ddr_type_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
 
             <LinearLayout
@@ -190,8 +184,7 @@
                 <Spinner
                     android:id="@+id/spinnerChipType"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/chip_type_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -217,8 +210,7 @@
                 <Spinner
                     android:id="@+id/spinnerRomType"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/rom_type_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
 
             <LinearLayout
@@ -236,8 +228,7 @@
                 <Spinner
                     android:id="@+id/spinnerOperation"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/operation_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -262,8 +253,7 @@
                 <Spinner
                     android:id="@+id/spinnerStorage"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/storage_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
 
             <LinearLayout
@@ -281,8 +271,7 @@
                 <Spinner
                     android:id="@+id/spinnerSection"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:entries="@array/section_options"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -406,7 +395,7 @@
             android:progress="0"
             android:layout_marginBottom="8dp"/>
 
-        <!-- أزرار التحكم: إلغاء يسار، بدء يمين -->
+        <!-- أزرار التحكم -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
